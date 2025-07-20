@@ -69,31 +69,36 @@ function MapWithSpots() {
     window.location.reload();
   };
 
-  useEffect(() => {
-    const url = "/api/spots";
-    
-    axios.get(url).then(res => {
-      console.log("[SPOTS] 응답 전체:", res);
-      console.log("[SPOTS] 데이터:", res.data);
-      setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []);
-    });
-  }, []);
+useEffect(() => {
+  const userId = localStorage.getItem("snowball_uid");
+  const url = `/api/spots?owner_id=${userId}&scope=PRIVATE`;
+  axios.get(url).then(res => {
+    setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []);
+  });
+}, []);
 
   // mapCenter가 변할 때마다 최신 중심좌표 로그 출력
   useEffect(() => {
   }, [mapCenter]);
 
-  const handleAddSpot = (data) => {
-    axios.post(`/api/spots?buildingId=${data.buildingId}&categoryId=${data.categoryId}`, {
+const handleAddSpot = (data) => {
+  const userId = localStorage.getItem("snowball_uid");
+  const scope = data.scope || "PRIVATE";
+  axios.post(
+    `/api/spots?buildingId=${data.buildingId}&categoryId=${data.categoryId}&owner_id=${userId}&scope=${scope}`,
+    {
       name: data.name,
       lat: mapCenter[0],
       lng: mapCenter[1],
       isPublic: true
-    }).then(() => {
-      axios.get("/api/spots").then(res => setSpots(res.data));
-      setShowForm(false);
-    });
-  };
+    }
+  ).then(() => {
+    // *** "전체 스팟"이 아니라 "내 개인맵"만 다시 불러오기! ***
+    axios.get(`/api/spots?owner_id=${userId}&scope=PRIVATE`)
+      .then(res => setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []));
+    setShowForm(false);
+  });
+};
 
   return (
     <div>
