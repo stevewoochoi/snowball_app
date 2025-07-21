@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Login from "./Login";
-import MainPage from "./MapWithSpots";
+import MapWithSpots from "./components/MapWithSpots";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -14,7 +14,7 @@ function App() {
   if (!user) {
     return <Login onLogin={setUser} />;
   }
-  return <MainPage user={user} />;
+  return <MapWithSpots user={user} />;
 }
 
 export default App;

@@ -1,12 +1,12 @@
 import { MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+// import L from 'leaflet';
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
-import SpotForm from './SpotForm'; 
-import CenterTracker from './components/CenterTracker';
-import SpotMarker from './components/SpotMarker';
-import SettingsModal from './components/SettingsModal';
+import SpotForm from '../SpotForm'; 
+import CenterTracker from './CenterTracker';
+import SpotMarker from './SpotMarker';
+import SettingsModal from './SettingsModal';
 
 function MapWithSpots() {
   const [spots, setSpots] = useState([]);
