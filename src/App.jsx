@@ -5,6 +5,17 @@ import MapWithSpots from "./components/MapWithSpots";
 function App() {
   const [user, setUser] = useState(null);
 
+  // 모바일 100vh 버그 대응 (iOS 사파리, 모바일 크롬 등)
+  useEffect(() => {
+    function setRealVh() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--real-vh', `${vh}px`);
+    }
+    setRealVh();
+    window.addEventListener('resize', setRealVh);
+    return () => window.removeEventListener('resize', setRealVh);
+  }, []);
+
   useEffect(() => {
     const uid = localStorage.getItem("snowball_uid");
     const nick = localStorage.getItem("snowball_nickname");
