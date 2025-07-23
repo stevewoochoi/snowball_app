@@ -1,5 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+
+// OpenStreetMap Nominatim reverse geocoding helper
+const fetchAddress = async (lat, lng) => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { "User-Agent": "snowball-ai/1.0" } }
+    );
+    const data = await res.json();
+    return data.display_name || '';
+  } catch (e) {
+    return '';
+  }
+};
+
+const SUGGEST_API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:8001/api/spotname/suggest"
+    : "/api/spotname/suggest";
 
 // 모바일(iOS 포함)에서 팝업이 화면을 자연스럽게 차지하도록 레이아웃/폭 조정.
 function SpotForm({
@@ -17,6 +36,41 @@ function SpotForm({
   const [categoryId, setCategoryId] = useState('');
   const [buildings, setBuildings] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const nameInputRef = useRef();
+
+  const handleSuggest = async () => {
+    if (!currentBuilding || !currentCategory) {
+      setName("건물, 카테고리를 먼저 선택해주세요.");
+      nameInputRef.current?.focus();
+      return;
+    }
+    setIsSuggesting(true);
+    setSuggestions([]);
+    let address = '';
+    if (center && center.length === 2) {
+      address = await fetchAddress(center[0], center[1]);
+    }
+    try {
+      const res = await fetch(SUGGEST_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          building: currentBuilding.name,
+          category: currentCategory.name,
+          address,
+          extra: ''
+        })
+      });
+      const data = await res.json();
+      setSuggestions(data.suggestions || []);
+      setName(data.suggestions?.[0] || '');
+    } catch (e) {
+      setSuggestions(['추천 실패(네트워크 문제?)']);
+    }
+    setIsSuggesting(false);
+  };
 
   useEffect(() => {
     axios.get("/api/buildings")
@@ -81,20 +135,90 @@ function SpotForm({
           .spot-slider::-webkit-scrollbar { display: none; }
         }
       `}</style>
-      {/* 위치, 이름 입력 */}
-      {/* <div style={{fontSize: 12, color: '#379e6b', marginBottom: 4, fontWeight: 500}}>
-        위치: <span style={{fontWeight:600}}>{center[0].toFixed(6)}, {center[1].toFixed(6)}</span>
-      </div> */}
-      <input
-        placeholder="스팟 이름"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        style={{
-          width:'96%', fontSize:16, padding: '10px 14px', border:'1.1px solid #b0c4d6',
-          borderRadius:7, marginBottom: step === 1 ? 14 : 8, outline:'none',
-          boxShadow:'0 1px 4px #0001', transition:'border 0.2s'
-        }}
-      />
+      <div style={{ width: '100%', display: 'flex', alignItems: 'center', marginTop: 8 }}>
+        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <input
+            placeholder="스팟 이름"
+            value={name}
+            onFocus={() => {
+              if (name === "건물, 카테고리를 먼저 선택해주세요.") setName('');
+            }}
+            onChange={e => setName(e.target.value)}
+            ref={nameInputRef}
+            style={{
+              flex: 1,
+              fontSize: 15,
+              padding: '8px 38px 8px 10px',
+              border: '1px solid #b0c4d6',
+              borderRadius: 6,
+              marginRight: 8,
+              outline: 'none',
+              background: '#222',
+              color: '#fff',
+              paddingRight: '38px'
+            }}
+          />
+          {name && (
+            <button
+              type="button"
+              onClick={() => {
+                setName('');
+                nameInputRef.current?.focus();
+              }}
+              style={{
+                position: 'absolute',
+                right: 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                color: '#fff',
+                fontSize: 18,
+                cursor: 'pointer',
+                padding: 0,
+                lineHeight: 1,
+                userSelect: 'none'
+              }}
+              aria-label="Clear spot name"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <button
+          onClick={handleSuggest}
+          disabled={isSuggesting}
+          style={{
+            whiteSpace: 'nowrap',
+            padding: '8px 10px', background: '#eee', color: '#197ad6', fontWeight: 600,
+            border: '1px solid #a7cbe5', borderRadius: 6, fontSize: 13, cursor: 'pointer'
+          }}
+        >{isSuggesting ? '추천 중...' : '추천받기'}</button>
+      </div>
+      {suggestions.length > 1 && (
+        <div style={{ width: '100%', margin: '7px 0 0 0', display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              style={{
+                padding: '4px 10px',
+                background: '#f3faff',
+                border: '1.2px solid #a7cbe5',
+                borderRadius: 14,
+                fontSize: 13,
+                color: '#197ad6',
+                fontWeight: 600,
+                marginRight: 1,
+                cursor: 'pointer'
+              }}
+              onClick={() => setName(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
       {/* === 1단계: 건물 선택 (슬라이드) === */}
       {step === 1 && (
         <>
@@ -108,7 +232,12 @@ function SpotForm({
             {buildings.map(b => (
               <div
                 key={b.id}
-                onClick={() => { setBuildingId(b.id); setStep(2); if(onBuildingSelect) onBuildingSelect(b); }}
+                onClick={() => { 
+                  setBuildingId(b.id); 
+                  setStep(2); 
+                  if(onBuildingSelect) onBuildingSelect(b); 
+                  if(name === "건물, 카테고리를 먼저 선택해주세요.") setName('');
+                }}
                 style={{
                   minWidth: 52, maxWidth: 56, minHeight: 58, borderRadius: 8, flexShrink: 0,
                   border: buildingId === b.id ? '2px solid #1a9ad6' : '1.1px solid #bbb',
@@ -139,7 +268,11 @@ function SpotForm({
             {categories.map(c => (
               <div
                 key={c.id}
-                onClick={() => { setCategoryId(c.id); if(onCategorySelect) onCategorySelect(c); }}
+                onClick={() => { 
+                  setCategoryId(c.id); 
+                  if(onCategorySelect) onCategorySelect(c); 
+                  if(name === "건물, 카테고리를 먼저 선택해주세요.") setName('');
+                }}
                 style={{
                   minWidth:52, maxWidth:56, minHeight:46, borderRadius:8, flexShrink:0,
                   border: categoryId === c.id ? '2px solid #8ac421' : '1.1px solid #bbb',
