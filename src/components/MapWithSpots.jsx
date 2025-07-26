@@ -1,13 +1,15 @@
 // Fix: Ensure MapContainer fills the entire visible viewport on mobile by forcing fixed positioning and full 100dvh height.
 // This resolves the issue where the map starts below the browser UI causing buttons (like the igloo button) to be partially hidden.
 
-import { MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, useMapEvents, Marker } from 'react-leaflet';
+import L from 'leaflet';
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
 import SpotForm from '../SpotForm'; 
 import SpotMarker from './SpotMarker';
 import SettingsModal from './SettingsModal';
+import SpotView from './SpotView';
 
 // CenterTracker 컴포넌트는 지도 내 사용자 인터랙션(드래그, 줌)을 감지하고,
 // 그에 따라 부모 컴포넌트 상태(mapCenter, zoom)를 동기화하는 역할을 수행합니다.
@@ -24,7 +26,6 @@ function CenterTracker({ setMapCenter, setZoom, userMovingRef }) {
       userMovingRef.current = false;
       const center = e.target.getCenter();
       setMapCenter([center.lat, center.lng]);
-      console.log('[지도 이동] 위도:', center.lat, '경도:', center.lng);
     },
     zoomend(e) {
       // 줌 레벨 변경이 끝났을 때 상태 갱신
@@ -39,6 +40,11 @@ function MapWithSpots() {
   const [showForm, setShowForm] = useState(false);
   const [mapCenter, setMapCenter] = useState([37.5665, 126.9780]);
   const [zoom, setZoom] = useState(17);
+
+  const [myLocation, setMyLocation] = useState(null);
+
+  // SpotView modal state
+  const [selectedSpot, setSelectedSpot] = useState(null);
 
   // mapRef는 react-leaflet의 MapContainer 인스턴스에 대한 참조를 저장합니다.
   // 이를 통해 외부 함수에서 지도를 직접 제어(flyTo 등)할 수 있습니다.
@@ -119,10 +125,6 @@ function MapWithSpots() {
     userMovingRef.current = false;
     // flyTo를 통해 애니메이션과 함께 지정 위치 및 줌으로 이동
     mapRef.current.flyTo(latlng, zoomLevel, { animate: true, duration: 1.2 });
-    // flyTo 직후 mapCenter 상태를 이동 위치로 동기화
-    setMapCenter([latlng[0], latlng[1]]);
-    // flyTo 직후 이동 좌표 콘솔 출력
-    console.log('[이동 버튼] 위도:', latlng[0], '경도:', latlng[1]);
     // 이동 완료 후 현재 중심 좌표 로그 출력 (디버깅 목적)
     setTimeout(() => {
       if (mapRef.current) {
@@ -140,6 +142,7 @@ function MapWithSpots() {
         (position) => {
           const { latitude, longitude } = position.coords;
           moveToLocation([latitude, longitude]);
+          setMyLocation([latitude, longitude]);
         },
         (error) => {
           // 위치 정보 획득 실패 시 기본 위치로 이동
@@ -151,6 +154,12 @@ function MapWithSpots() {
       moveToLocation([37.5665, 126.9780]);
     }
   };
+
+  const myLocationIcon = L.icon({
+    iconUrl: '/etc/my_location_marker.png',
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  });
 
   const handleAddSpot = (data) => {
     const userId = localStorage.getItem("snowball_uid");
@@ -237,7 +246,15 @@ function MapWithSpots() {
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
-          {spots.map(spot => <SpotMarker key={spot.id} spot={spot} zoom={zoom} />)}
+          {myLocation && <Marker position={myLocation} icon={myLocationIcon} />}
+          {spots.map(spot => (
+            <SpotMarker
+              key={spot.id}
+              spot={spot}
+              zoom={zoom}
+              onClick={() => setSelectedSpot(spot)}
+            />
+          ))}
         </MapContainer>
 
         {/* 
@@ -424,6 +441,16 @@ function MapWithSpots() {
                 selectedCategory={previewCategory}
               />
             </div>
+          </div>
+        )}
+        {/* SpotView 모달 */}
+        {selectedSpot && (
+          <div style={{
+            position: 'fixed', zIndex: 4000, top: 0, left: 0,
+            width: '100vw', height: '100dvh', background: 'rgba(0,0,0,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <SpotView spotId={selectedSpot.id} onClose={() => setSelectedSpot(null)} />
           </div>
         )}
       </div>

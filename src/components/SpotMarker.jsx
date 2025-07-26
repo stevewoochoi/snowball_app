@@ -1,7 +1,7 @@
-import { Marker, Popup } from 'react-leaflet';
+import { Marker } from 'react-leaflet';
 import L from 'leaflet';
 
-function SpotMarker({ spot, zoom }) {
+function SpotMarker({ spot, zoom, onClick }) {
   const markerSize = Math.max(20, Math.min(80, Math.floor(6 * zoom - 44)));
   const categorySize = Math.round(markerSize * 0.85);
   const iconHtml = `
@@ -25,13 +25,8 @@ function SpotMarker({ spot, zoom }) {
         iconAnchor: [markerSize / 2, markerSize],
         popupAnchor: [0, -markerSize]
       })}
-    >
-      <Popup>
-        <b>{spot.name}</b><br />
-        건물: {spot.building && spot.building.name}<br />
-        카테고리: {spot.category && spot.category.name}
-      </Popup>
-    </Marker>
+      eventHandlers={{ click: () => { console.log('[스팟 클릭] id:', spot.id); if (onClick) onClick(spot); } }}
+    />
   );
 }
 

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./Login";
 import MapWithSpots from "./components/MapWithSpots";
-import SpotView from "./components/SpotView";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -27,18 +25,7 @@ function App() {
   if (!user) {
     return <Login onLogin={setUser} />;
   }
-  return (
-    <Routes>
-      <Route path="/" element={<MapWithSpots user={user} />} />
-      <Route path="/spot/:spotId" element={<SpotView />} />
-    </Routes>
-  );
+  return <MapWithSpots user={user} />;
 }
 
-export default function AppWithRouter() {
-  return (
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  );
-}
+export default App;

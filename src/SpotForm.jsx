@@ -50,6 +50,7 @@ function SpotForm({
     setSuggestions([]);
     let address = '';
     if (center && center.length === 2) {
+      console.log('[추천하기] 지도 중심 좌표:', center[0], center[1]);
       address = await fetchAddress(center[0], center[1]);
     }
     try {
@@ -65,7 +66,7 @@ function SpotForm({
       });
       const data = await res.json();
       setSuggestions(data.suggestions || []);
-      setName(data.suggestions?.[0] || '');
+      setName((data.suggestions?.[0] || '').replace(/^\d+\.\s*/, ''));
     } catch (e) {
       setSuggestions(['추천 실패(네트워크 문제?)']);
     }
@@ -212,7 +213,7 @@ function SpotForm({
                 marginRight: 1,
                 cursor: 'pointer'
               }}
-              onClick={() => setName(s)}
+              onClick={() => setName(s.replace(/^\d+\.\s*/, ''))}
             >
               {s}
             </button>
