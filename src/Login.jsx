@@ -22,6 +22,7 @@ function Login({ onLogin }) {
     .then(res => {
       localStorage.setItem("snowball_uid", res.data.id);
       localStorage.setItem("snowball_nickname", res.data.nickname);
+      localStorage.setItem("snowball_token", res.data.token);
       onLogin && onLogin(res.data); // 상위 컴포넌트로 로그인 이벤트 전달
     });
   };

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./Login";
 import MapWithSpots from "./components/MapWithSpots";
 import SpotView from "./components/SpotView";
+import "./axiosConfig";
 
 function App() {
   const [user, setUser] = useState(null);

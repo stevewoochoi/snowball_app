@@ -38,11 +38,32 @@ function SpotView({ spotId, spot, onClose }) {
         ))}
       </div>
       {/* 닫기 */}
-      <button onClick={onClose} style={{
-        position: "absolute", top: 22, right: 24,
-        width: 34, height: 34, borderRadius: "50%", background: "#222", color: "#fff",
-        border: "none", fontSize: 22, fontWeight: 700, boxShadow: "0 1px 4px #0002"
-      }}>×</button>
+      <button
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          right: 18,
+          top: 18,
+          zIndex: 99999,
+          background: "#222",
+          color: "#fff",
+          border: "3px solid #fff",
+          borderRadius: "50%",
+          width: 44,
+          height: 44,
+          fontSize: 28,
+          fontWeight: 900,
+          lineHeight: "44px",
+          boxShadow: "0 1px 8px #0004",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "box-shadow .18s"
+        }}
+      >
+        ×
+      </button>
       {/* 프리셋 적용 */}
       <TemplateComponent spotId={spotId} spot={spot} />
     </div>
