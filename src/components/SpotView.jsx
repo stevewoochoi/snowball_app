@@ -1,6 +1,8 @@
 import { useState } from "react";
 import SpotViewRoom from "./SpotViewRoom";
 import SpotViewCafe from "./SpotViewCafe";
+import CloseCircleIcon from "./icons/CloseCircleIcon";
+
 // ... 향후 프리셋 추가 SpotViewLibrary 등
 
 const PRESET_LIST = [
@@ -8,8 +10,12 @@ const PRESET_LIST = [
   { name: "Cafe", component: SpotViewCafe },
 ];
 
-function SpotView({ spotId, spot, onClose }) {
+// ★ user 추가!
+// onStartMove prop을 SpotView에 추가
+function SpotView({ spotId, spot, user, onClose, onStartMove }) {
   const [preset, setPreset] = useState(PRESET_LIST[0]);
+  const [galleryDetailOpen, setGalleryDetailOpen] = useState(false);
+  console.log("[SpotView] user:", user);
 
   const TemplateComponent = preset.component;
 
@@ -38,34 +44,34 @@ function SpotView({ spotId, spot, onClose }) {
         ))}
       </div>
       {/* 닫기 */}
-      <button
-        onClick={onClose}
-        style={{
-          position: "fixed",
-          right: 18,
-          top: 18,
-          zIndex: 99999,
-          background: "#222",
-          color: "#fff",
-          border: "3px solid #fff",
-          borderRadius: "50%",
-          width: 44,
-          height: 44,
-          fontSize: 28,
-          fontWeight: 900,
-          lineHeight: "44px",
-          boxShadow: "0 1px 8px #0004",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "box-shadow .18s"
-        }}
-      >
-        ×
-      </button>
+      {!galleryDetailOpen && (
+        <button
+          onClick={onClose}
+          style={{
+            position: "fixed",
+            right: 18,
+            top: 18,
+            zIndex: 99999,
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            boxShadow: "none"
+          }}
+        >
+          <CloseCircleIcon size={44} />
+        </button>
+      )}
       {/* 프리셋 적용 */}
-      <TemplateComponent spotId={spotId} spot={spot} />
+      {/* user를 반드시 넘기세요! onStartMove는 "스팟 이동" 모드용 */}
+      <TemplateComponent
+        spotId={spotId}
+        spot={spot}
+        user={user}
+        onClose={onClose}
+        setGalleryDetailOpen={setGalleryDetailOpen}
+        onStartMove={onStartMove}
+      />
     </div>
   );
 }

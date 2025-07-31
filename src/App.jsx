@@ -1,3 +1,4 @@
+import "./axiosConfig";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./Login";
@@ -21,8 +22,17 @@ function App() {
 
   useEffect(() => {
     const uid = localStorage.getItem("snowball_uid");
-    const nick = localStorage.getItem("snowball_nickname");
-    if (uid && nick) setUser({id: uid, nickname: nick});
+    const nickname = localStorage.getItem("snowball_nickname");
+    const token = localStorage.getItem("snowball_token");
+    console.log('[App.jsx] localStorage:', { uid, nickname, token });
+    // token까지 user에 포함해 전달
+    if (uid && nickname && token) {
+      console.log('[App.jsx] user state set:', { id: Number(uid), nickname, token });
+      setUser({ id: Number(uid), nickname, token });
+    } else if (uid && nickname) {
+      console.log('[App.jsx] user state set:', { id: Number(uid), nickname });
+      setUser({ id: Number(uid), nickname });
+    }
   }, []);
 
   if (!user) {
@@ -31,7 +41,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MapWithSpots user={user} />} />
-      <Route path="/spot/:spotId" element={<SpotView />} />
+      <Route path="/spot/:spotId" element={<SpotView user={user} />} />
     </Routes>
   );
 }
