@@ -24,7 +24,10 @@ function Login({ onLogin }) {
       localStorage.setItem("snowball_uid", res.data.id);
       localStorage.setItem("snowball_nickname", res.data.nickname);
       localStorage.setItem("snowball_token", res.data.token);
+      localStorage.setItem("snowball_level", res.data.level);
       console.log("[Login] token 저장됨?", localStorage.getItem("snowball_token"));
+            console.log("[Login] level 저장됨?", localStorage.getItem("snowball_level"));
+
       onLogin && onLogin(res.data); // 상위 컴포넌트로 로그인 이벤트 전달
     });
   };

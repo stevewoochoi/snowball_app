@@ -1,45 +1,36 @@
   // Fix: Ensure MapContainer fills the entire visible viewport on mobile by forcing fixed positioning and full 100dvh height.
   // This resolves the issue where the map starts below the browser UI causing buttons (like the igloo button) to be partially hidden.
 
-  import { MapContainer, TileLayer, useMapEvents, Marker } from 'react-leaflet';
+  import { useMapEvents } from 'react-leaflet';
   import L from 'leaflet';
   import { useEffect, useState, useRef } from 'react';
   import axios from 'axios';
   import 'leaflet/dist/leaflet.css';
   import SpotForm from '../SpotForm'; 
-  import SpotMarker from './SpotMarker';
+  import SearchModal from './SearchModal';
+  import SpotMarker from './Map/SpotMarker';
   import SettingsModal from './SettingsModal';
   import SpotView from './SpotView';
+  import MyLocationMarker from './Map/MyLocationMarker';
+  import CenterTracker from './Map/CenterTracker';
+  import MoveSpotOverlay from './Map/MoveSpotOverlay';
+  import MapControls from './Map/MapControls';
+  import LeafletMap from './Map/LeafletMap';
+  import SpotList from './Map/SpotList';
+  import { useSpots } from "../hooks/useSpots"; // 경로 맞게 조정
+
+
 
   // CenterTracker 컴포넌트는 지도 내 사용자 인터랙션(드래그, 줌)을 감지하고,
-  // 그에 따라 부모 컴포넌트 상태(mapCenter, zoom)를 동기화하는 역할을 수행합니다.
-  // userMovingRef는 사용자가 지도를 움직이는 중임을 추적하는 ref입니다.
-  function CenterTracker({ setMapCenter, setZoom, userMovingRef }) {
-    useMapEvents({
-      dragstart() {
-        // 사용자가 지도를 드래그 시작했음을 표시
-        userMovingRef.current = true;
-      },
-      dragend(e) {
-        // 드래그 종료 시점에 사용자가 더 이상 움직이지 않음을 표시하고,
-        // 지도의 중심 좌표를 부모 컴포넌트 상태에 반영
-        userMovingRef.current = false;
-        const center = e.target.getCenter();
-        setMapCenter([center.lat, center.lng]);
-      },
-      zoomend(e) {
-        // 줌 레벨 변경이 끝났을 때 상태 갱신
-        setZoom(e.target.getZoom());
-      }
-    });
-    return null;
-  }
-
+ 
   function MapWithSpots({ user }) {
     const [spots, setSpots] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [mapCenter, setMapCenter] = useState([37.5665, 126.9780]);
     const [zoom, setZoom] = useState(17);
+    const [showSearch, setShowSearch] = useState(false);
+    // Search button pressed state
+    const [searchBtnPressed, setSearchBtnPressed] = useState(false);
 
     const [myLocation, setMyLocation] = useState(null);
 
@@ -48,15 +39,17 @@
     // [추가] 이동 모드 상태값
     const [moveSpot, setMoveSpot] = useState(null);
 
-    useEffect(() => {
-    // === 이동모드 진입 시 지도 중앙으로 ===
-    if (moveSpot && moveSpot.lat && moveSpot.lng) {
-      moveToLocation(
-        [moveSpot.lat + 0.00013, 
-        moveSpot.lng], zoom);
-    }
-    // eslint-disable-next-line
-  }, [moveSpot]);
+    const MAX_ZOOM = 18; // (타일 벤더에 따라 20까지 가능)
+
+    // Basemap state
+    const [basemap, setBasemap] = useState("carto");
+
+  useEffect(() => {
+  if (moveSpot && moveSpot.lat && moveSpot.lng) {
+    setZoom(MAX_ZOOM);
+    moveToLocation([moveSpot.lat + 0.00013, moveSpot.lng], MAX_ZOOM);
+  }
+}, [moveSpot]);
 
     // 지도 이동 중 moveSpot의 위치 트래킹 로그
     useEffect(() => {
@@ -89,13 +82,44 @@
     };
 
     
-    useEffect(() => {
+    // Helper: fetch my PRIVATE spots, OFFICIAL spots, (optionally FRIENDS/PUBLIC), and setSpots
+    const fetchAllSpots = async () => {
       const userId = user?.id || localStorage.getItem("snowball_uid");
-      if (!userId) return;
-        const url = `/api/spots?ownerId=${userId}&scope=PRIVATE`; // ← 언더스코어!
-      axios.get(url).then(res => {
-        setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []);
-      });
+      if (!userId) {
+        setSpots([]);
+        return;
+      }
+      try {
+        // 1. 내 PRIVATE
+        const privateReq = axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`);
+        // 2. OFFICIAL
+        const officialReq = axios.get(`/api/spots?scope=OFFICIAL`);
+        // (옵션: FRIENDS, PUBLIC 스팟도 노출하려면 아래 주석 해제)
+        // const friendsReq = axios.get(`/api/spots?scope=FRIENDS`);
+        // const publicReq = axios.get(`/api/spots?scope=PUBLIC`);
+        // await Promise.all 요청
+        const [privateRes, officialRes] = await Promise.all([privateReq, officialReq]);
+        const privateSpots = Array.isArray(privateRes.data) ? privateRes.data : privateRes.data.spots || [];
+        const officialSpots = Array.isArray(officialRes.data) ? officialRes.data : officialRes.data.spots || [];
+        // 옵션(주석 해제 시)
+        // const friendsSpots = Array.isArray(friendsRes.data) ? friendsRes.data : friendsRes.data.spots || [];
+        // const publicSpots = Array.isArray(publicRes.data) ? publicRes.data : publicRes.data.spots || [];
+        // id 중복 없이 병합 (private > official 우선)
+        const spotMap = {};
+        officialSpots.forEach(s => { spotMap[s.id] = s; });
+        privateSpots.forEach(s => { spotMap[s.id] = s; });
+        // 옵션 병합
+        // friendsSpots.forEach(s => { spotMap[s.id] = s; });
+        // publicSpots.forEach(s => { spotMap[s.id] = s; });
+        setSpots(Object.values(spotMap));
+      } catch (e) {
+        setSpots([]);
+      }
+    };
+
+    useEffect(() => {
+      fetchAllSpots();
+      // eslint-disable-next-line
     }, [user]);
 
     useEffect(() => {
@@ -175,40 +199,24 @@
     });
 
     const handleAddSpot = (data) => {
-  const userId = localStorage.getItem("snowball_uid");
-  const scope = data.scope || "PRIVATE";
-  // owner_id로 통일
-  axios.post(
-    `/api/spots?buildingId=${data.buildingId}&categoryId=${data.categoryId}&ownerId=${userId}&scope=${scope}`,
-    {
-      name: data.name,
-      lat: mapCenter[0],   // 항상 최신 mapCenter 사용!
-      lng: mapCenter[1],
-      isPublic: true
-    }
-  ).then(() => {
-    axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`)
-      .then(res => setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []));
-    setShowForm(false);
-    setPreviewBuilding(null);
-    setPreviewCategory(null);
-  });
-};
-    // [지도 클릭시 이동 처리] (더 이상 사용하지 않음)
-    // const handleMapClickForMove = (e) => {
-    //   if (!moveSpot) return;
-    //   const { lat, lng } = e.latlng;
-    //   // 서버 PATCH 호출 (예시)
-    //   axios.patch(`/api/spots/${moveSpot.id}`, { lat, lng }).then(() => {
-    //     setMoveSpot(null);
-    //     const userId = user?.id || localStorage.getItem("snowball_uid");
-    //     if (userId) {
-    //       axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`)
-    //         .then(res => setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []));
-    //     }
-    //   });
-    // };
-
+      const userId = localStorage.getItem("snowball_uid");
+      const scope = data.scope || "PRIVATE";
+      axios.post(
+        `/api/spots?buildingId=${data.buildingId}&categoryId=${data.categoryId}&ownerId=${userId}&scope=${scope}`,
+        {
+          name: data.name,
+          lat: mapCenter[0],
+          lng: mapCenter[1],
+          isPublic: true
+        }
+      ).then(() => {
+        fetchAllSpots();
+        setShowForm(false);
+        setPreviewBuilding(null);
+        setPreviewCategory(null);
+      });
+    };
+    
     return (
       <>
         <style>{`
@@ -258,121 +266,80 @@
             style에서 position: fixed와 height: 100dvh를 지정해 모바일에서 화면 전체를 채우도록 강제합니다.
             center와 zoom은 상태값으로 관리되어 지도 중심 및 확대 레벨을 제어합니다.
           */}
-          <MapContainer
+          <LeafletMap
             center={mapCenter}
             zoom={zoom}
-            ref={mapRef} // 지도 인스턴스 참조 저장
-            style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', margin: 0, padding: 0, zIndex: 0 }}
-            // 지도 클릭 이동 방식 제거: whenCreated에서 map.on('click', ...) 제거
+            mapRef={mapRef}
+            basemap={basemap}
           >
-            {/* 
-              CenterTracker는 지도 이동 및 줌 변경 이벤트를 감지하여
-              mapCenter와 zoom 상태를 동기화하는 역할을 합니다.
-              이를 통해 사용자가 지도를 드래그하거나 확대/축소할 때 상태가 업데이트됩니다.
-            */}
             <CenterTracker setMapCenter={setMapCenter} setZoom={setZoom} userMovingRef={userMovingRef} />
-            <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            <MyLocationMarker myLocation={myLocation} setMyLocation={setMyLocation} />
+            {/* === 마커 렌더 부분 SpotList로 대체 === */}
+            <SpotList
+              spots={spots}
+              zoom={zoom}
+              selectedSpot={selectedSpot}
+              moveSpot={moveSpot}
+              onClickSpot={setSelectedSpot}
+              onDragEndSpot={(spot, lat, lng) => {
+                axios.patch(`/api/spots/${spot.id}`, { lat, lng }).then(() => {
+                  setMoveSpot(null);
+                  fetchAllSpots();
+                });
+              }}
             />
-            {myLocation && <Marker position={myLocation} icon={myLocationIcon} />}
-            {spots.map(spot => {
-  const isMovable = moveSpot && moveSpot.id === spot.id;
-  // 👉 이동 모드 중 해당 spot이면 지도에 마커 그리지 않음!
-  if (isMovable) return null;
+          </LeafletMap>
 
-  // 기존 그대로
-  return (
-    <SpotMarker
-      key={spot.id}
-      spot={spot}
-      zoom={zoom}
-      draggable={!!isMovable}
-      onClick={isMovable ? undefined : () => setSelectedSpot(spot)}
-      onDragend={e => {
-        if (isMovable) {
-          const { lat, lng } = e.target.getLatLng();
-          axios.patch(`/api/spots/${spot.id}`, { lat, lng }).then(() => {
-            setMoveSpot(null);
-            const userId = user?.id || localStorage.getItem("snowball_uid");
-            if (userId) {
-              axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`)
-                .then(res => setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []));
-            }
-          });
-        }
-      }}
-    />
-  );
-})}
-          </MapContainer>
 
-          {/* 
-            지도 이동 테스트 버튼들: 
-            각각 현재 위치, 서울시청, 명동역 좌표로 지도를 이동시키는 버튼입니다.
-            moveToLocation과 getCurrentLocation 함수를 호출하여 지도 중심을 변경합니다.
-          */}
-          <div style={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <button
-              onClick={() => {
-                getCurrentLocation();
-              }}
-              style={{
-                padding: '6px 10px',
-                background: '#000',
-                color: '#fff',
-                border: '1px solid #fff',
-                borderRadius: '8px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
-              }}
-            >
-              내 위치
-            </button>
-            <button
-              onClick={() => {
-                moveToLocation([37.5665, 126.9780]);
-              }}
-              style={{
-                padding: '6px 10px',
-                background: '#000',
-                color: '#fff',
-                border: '1px solid #fff',
-                borderRadius: '8px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
-              }}
-            >
-              서울시청
-            </button>
-            <button
-              onClick={() => {
-                moveToLocation([37.5609, 126.9853]);
-              }}
-              style={{
-                padding: '6px 10px',
-                background: '#000',
-                color: '#fff',
-                border: '1px solid #fff',
-                borderRadius: '8px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
-              }}
-            >
-              명동역
-            </button>
-          </div>
+          // === 컨트롤 버튼: 모달/오버레이 없을 때만 노출 ===
+          {(!showForm && !selectedSpot && !moveSpot && !showSearch) && (
+            <MapControls
+              onCurrentLocation={getCurrentLocation}
+              onSeoulCityHall={() => moveToLocation([37.5665, 126.9780])}
+              onMyeongdong={() => moveToLocation([37.5609, 126.9853])}
+            />
+          )}
+
+          {/* Search button (bottom right, above build button) and SearchModal */}
+          <img
+            src={searchBtnPressed ? "/button/btn_searchbutton2on.png" : "/button/btn_searchbutton2.png"}
+            alt="검색"
+            style={{
+              position: 'fixed',
+              bottom: "calc(env(safe-area-inset-bottom, 16px) + 16px)",
+              right: 16,
+              width: 70,
+              height: 70,
+              zIndex: 2020,
+              cursor: 'pointer'
+            }}
+            onTouchStart={() => setSearchBtnPressed(true)}
+            onTouchEnd={() => {
+              setSearchBtnPressed(false);
+              setShowSearch(true);
+            }}
+            onMouseDown={() => setSearchBtnPressed(true)}
+            onMouseUp={() => {
+              setSearchBtnPressed(false);
+              setShowSearch(true);
+            }}
+            onMouseLeave={() => setSearchBtnPressed(false)}
+            draggable={false}
+          />
+          <SearchModal
+            open={showSearch}
+            onClose={() => {
+              setShowSearch(false);
+              setSearchBtnPressed(false);
+            }}
+            onSelectSpot={spot => {
+              if (spot?.lat && spot?.lng) {
+                moveToLocation([spot.lat, spot.lng], 18);
+              }
+              setShowSearch(false);
+              setSearchBtnPressed(false);
+            }}
+          />
 
           {/* 지도 중앙 미리보기: 손가락+건물+카테고리 (SpotMarker 구조와 동일) */}
           {showForm && (
@@ -431,6 +398,10 @@
             <SettingsModal
               onClose={() => setShowSettings(false)}
               onLogout={handleLogout}
+              basemap={basemap}
+              onBasemapChange={(key) => {
+                setBasemap(key);
+              }}
             />
           )}
 
@@ -489,6 +460,8 @@
                   onCategorySelect={setPreviewCategory}
                   selectedBuilding={previewBuilding}
                   selectedCategory={previewCategory}
+                  user={user}
+
                 />
               </div>
             </div>
@@ -506,12 +479,8 @@
                 user={user}
                 onClose={() => {
                   setSelectedSpot(null);
-                  // 삭제 등으로 SpotView 닫힐 때 spots 새로고침
-                  const userId = user?.id || localStorage.getItem("snowball_uid");
-                  if (userId) {
-                    axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`)
-                      .then(res => setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []));
-                  }
+                  // 새로고침 after closing SpotView (e.g., after delete)
+                  fetchAllSpots();
                 }}
                 onStartMove={spot => {
                   setSelectedSpot(null); // SpotView 닫기
@@ -520,189 +489,37 @@
               />
             </div>
           )}
-          {/* 이동 모드 안내 UI 및 이동 버튼 */}
-          {moveSpot && (
-  <>
-    {/* 지도 중심에 이동 버튼만 배치 */}
-    <div style={{
-      position: "fixed",
-      left: "50%",
-      top: "50%",
-      transform: "translate(-50%, -50%)",
-      width: 140,
-      height: 140,
-      pointerEvents: "none",
-      zIndex: 5002
-    }}>
-      {/* 위쪽 */}
-      <img
-        src="/button/btn_move_up.png"
-        alt="위로 이동"
-        style={{
-          position: "absolute",
-          left: "50%", top: 0, transform: "translateX(-50%)",
-          width: 44, height: 34, cursor: "pointer", pointerEvents: "auto"
-        }}
-        onClick={async () => {
-          const newLat = moveSpot.lat + 0.00025;
-          await axios.patch(`/api/spots/${moveSpot.id}`, { lat: newLat, lng: moveSpot.lng });
-          setMoveSpot({ ...moveSpot, lat: newLat });
-          console.log("[이동] spotId=" + moveSpot.id + ", lat=" + newLat + ", lng=" + moveSpot.lng);
-        }}
-      />
-      {/* 왼쪽 */}
-      <img
-        src="/button/btn_move_left.png"
-        alt="왼쪽 이동"
-        style={{
-          position: "absolute",
-          left: 0, top: "50%", transform: "translateY(-50%)",
-          width: 34, height: 44, cursor: "pointer", pointerEvents: "auto"
-        }}
-        onClick={async () => {
-          const newLng = moveSpot.lng - 0.0003;
-          await axios.patch(`/api/spots/${moveSpot.id}`, { lat: moveSpot.lat, lng: newLng });
-          setMoveSpot({ ...moveSpot, lng: newLng });
-          console.log("[이동] spotId=" + moveSpot.id + ", lat=" + moveSpot.lat + ", lng=" + newLng);
-        }}
-      />
-      {/* 오른쪽 */}
-      <img
-        src="/button/btn_move_right.png"
-        alt="오른쪽 이동"
-        style={{
-          position: "absolute",
-          right: 0, top: "50%", transform: "translateY(-50%)",
-          width: 34, height: 44, cursor: "pointer", pointerEvents: "auto"
-        }}
-        onClick={async () => {
-          const newLng = moveSpot.lng + 0.0003;
-          await axios.patch(`/api/spots/${moveSpot.id}`, { lat: moveSpot.lat, lng: newLng });
-          setMoveSpot({ ...moveSpot, lng: newLng });
-          console.log("[이동] spotId=" + moveSpot.id + ", lat=" + moveSpot.lat + ", lng=" + newLng);
-        }}
-      />
-      {/* 아래쪽 */}
-      <img
-        src="/button/btn_move_down.png"
-        alt="아래 이동"
-        style={{
-          position: "absolute",
-          left: "50%", bottom: 0, transform: "translateX(-50%)",
-          width: 44, height: 34, cursor: "pointer", pointerEvents: "auto"
-        }}
-        onClick={async () => {
-          const newLat = moveSpot.lat - 0.00025;
-          await axios.patch(`/api/spots/${moveSpot.id}`, { lat: newLat, lng: moveSpot.lng });
-          setMoveSpot({ ...moveSpot, lat: newLat });
-          console.log("[이동] spotId=" + moveSpot.id + ", lat=" + newLat + ", lng=" + moveSpot.lng);
-        }}
-      />
-      {/* 중앙 마커: 건물 + 카테고리 아이콘 (SpotMarker와 동일 크기/위치) */}
-      {(() => {
-        // 지도 zoom에 따라 동적으로 크기 계산
-        const markerSize = Math.max(20, Math.min(80, Math.floor(6 * zoom - 44)));
-        const categorySize = Math.round(markerSize * 0.85);
-        return (
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              width: markerSize,
-              height: markerSize,
-              transform: "translate(-50%, -50%)",
-              pointerEvents: "none",
-              zIndex: 1,
-            }}
-          >
-            {/* 건물 아이콘 */}
-            <img
-              src={moveSpot.building?.iconUrl || "/etc/default-avatar.png"}
-              alt=""
-              style={{
-                width: markerSize,
-                height: markerSize,
-                borderRadius: 13,
-                boxShadow: '0 0 10px #0002',
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                zIndex: 1,
-                background: "#fff",
-              }}
-            />
-            {/* 카테고리 아이콘 (있을 때만) */}
-            {moveSpot.category?.iconUrl && (
-              <img
-                src={moveSpot.category.iconUrl}
-                alt=""
-                style={{
-                  width: categorySize,
-                  height: categorySize,
-                  borderRadius: 10,
-                  boxShadow: '0 0 6px #2222',
-                  position: 'absolute',
-                  left: '55%',
-                  top: -Math.round(categorySize * 0.5),
-                  transform: 'translateX(-50%)',
-                  zIndex: 2,
-                  background: 'transparent',
-                }}
-              />
-            )}
-          </div>
-        );
-      })()}
-    </div>
 
-    {/* 상단에 이동 취소/완료 버튼만 배치 */}
-    <div style={{
-      position: "fixed",
-      top: 46,
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: 5003,
-      display: "flex",
-      gap: 22
-    }}>
-      <button
-        onClick={() => setMoveSpot(null)}
-        style={{
-          background: "#eee", borderRadius: 8, border: "1.4px solid #aaa",
-          padding: "8px 24px", fontSize: 15, color: "#197ad6", cursor: "pointer"
-        }}
-      >이동 취소</button>
-      <button
-        onClick={async () => {
-          // 위치 업데이트(백엔드)
-          await axios.patch(
-            `/api/spots/${moveSpot.id}`,
-            {
-              lat: mapCenter[0] - 0.00014, // ← 위도에서 미세하게 보정
-              lng: mapCenter[1]
-            },
-            { headers: { Authorization: user?.token ? `Bearer ${user.token}` : undefined } }
-          );
-          // spots 목록 새로고침
-          const userId = user?.id || localStorage.getItem("snowball_uid");
-          if (userId) {
-            axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`)
-              .then(res => setSpots(Array.isArray(res.data) ? res.data : res.data.spots || []));
-          }
-          // 모드 종료
-          setMoveSpot(null);
-        }}
-        style={{
-          background: "#1a9ad6", borderRadius: 8, border: "1.4px solid #1a9ad6",
-          padding: "8px 24px", fontSize: 15, color: "#fff", fontWeight: 700, cursor: "pointer"
-        }}
-      >
-        이동 완료
-      </button>
-    </div>
-  </>
-)}
+          {/* === 이동 모드 오버레이 분리 === */}
+          <MoveSpotOverlay
+            moveSpot={moveSpot}
+            mapCenter={mapCenter}
+            zoom={zoom}
+            onMove={async (newLat, newLng) => {
+              // 서버에 바로 PATCH, 좌표 이동 (방향 버튼)
+              await axios.patch(
+                `/api/spots/${moveSpot.id}`,
+                { lat: newLat, lng: newLng },
+                { headers: { Authorization: user?.token ? `Bearer ${user.token}` : undefined } }
+              );
+              setMoveSpot({ ...moveSpot, lat: newLat, lng: newLng });
+            }}
+            onCancel={() => setMoveSpot(null)}
+            onComplete={async () => {
+              // 지도 중앙 위치를 서버로 PATCH (이동 완료)
+              await axios.patch(
+                `/api/spots/${moveSpot.id}`,
+                {
+                  lat: mapCenter[0] - 0.00014, // 미세 조정값은 기존 로직 그대로 사용
+                  lng: mapCenter[1]
+                },
+                { headers: { Authorization: user?.token ? `Bearer ${user.token}` : undefined } }
+              );
+              // spots 목록 새로고침
+              await fetchAllSpots();
+              setMoveSpot(null);
+            }}
+          />
         </div>
       </>
     );

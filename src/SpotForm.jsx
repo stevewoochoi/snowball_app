@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import styles from './SpotForm.module.css';
 
 // OpenStreetMap Nominatim reverse geocoding helper
 const fetchAddress = async (lat, lng) => {
@@ -29,11 +30,13 @@ function SpotForm({
   onCategorySelect,
   selectedBuilding,
   selectedCategory,
+  user
 }) {
   const [name, setName] = useState('');
   const [step, setStep] = useState(1);
   const [buildingId, setBuildingId] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [scope, setScope] = useState("PRIVATE");
   const [buildings, setBuildings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
@@ -291,6 +294,58 @@ function SpotForm({
               </div>
             ))}
           </div>
+          <div style={{width:'100%', marginBottom: 10, display:'flex', flexDirection:'column', alignItems:'flex-start'}}>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>공개 범위 선택</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <label style={{ cursor: 'pointer', fontSize: 13, color: '#222' }}>
+                <input
+                  type="radio"
+                  name="scope"
+                  value="PRIVATE"
+                  checked={scope === "PRIVATE"}
+                  onChange={() => setScope("PRIVATE")}
+                  style={{ marginRight: 4 }}
+                />
+                비공개
+              </label>
+              <label style={{ cursor: 'pointer', fontSize: 13, color: '#222' }}>
+                <input
+                  type="radio"
+                  name="scope"
+                  value="FRIENDS"
+                  checked={scope === "FRIENDS"}
+                  onChange={() => setScope("FRIENDS")}
+                  style={{ marginRight: 4 }}
+                />
+                친구공개
+              </label>
+              <label style={{ cursor: 'pointer', fontSize: 13, color: '#222' }}>
+                <input
+                  type="radio"
+                  name="scope"
+                  value="PUBLIC"
+                  checked={scope === "PUBLIC"}
+                  onChange={() => setScope("PUBLIC")}
+                  style={{ marginRight: 4 }}
+                />
+                전체공개
+              </label>
+            {/* ★ level이 10 이상이면 official 표시 */}
+            {user?.level >= 10 && (
+            <label style={{ cursor: 'pointer', fontSize: 13, color: '#FF8C00', fontWeight: 700 }}>
+            <input
+           type="radio"
+           name="scope"
+           value="OFFICIAL"
+           checked={scope === "OFFICIAL"}
+           onChange={() => setScope("OFFICIAL")}
+            style={{ marginRight: 4 }}
+          />
+            공식(Official)
+      </label>
+    )}
+  </div>
+</div>
           <div style={{width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:7}}>
             <button onClick={() => { setStep(1); setCategoryId(''); if(onCategorySelect) onCategorySelect(null); }} style={{
               fontSize:11, color:'#1a9ad6', background:'none', border:'none', cursor:'pointer', padding: '3px 6px' // 버튼 크기 축소 (변경)
@@ -298,7 +353,7 @@ function SpotForm({
             <div>
               <button
                 onClick={() => {
-                  if (name && buildingId && categoryId) onSubmit({ name, buildingId, categoryId });
+                  if (name && buildingId && categoryId) onSubmit({ name, buildingId, categoryId, scope });
                 }}
                 style={{
                   background: '#1a9ad6', color: 'white', border: 'none',
