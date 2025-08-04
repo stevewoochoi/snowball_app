@@ -3,8 +3,10 @@
   background: rgba(48,54,69,0.18);
   backdrop-filter: blur(2px);
   z-index: 99999;
-  display: flex; align-items: center; justify-content: center;
-  padding: 3vw;
+  display: flex; 
+  align-items: flex-start;  
+  padding-top: 8vw;
+  justify-content: center;
 }
 
 .modal {
@@ -114,6 +116,7 @@
 .input {
   flex: 1;
   font-size: 17px;
+  color: black;
   border: none; outline: none;
   padding: 13px 17px; border-radius: 13px;
   background: #f4f6fb;
@@ -181,4 +184,23 @@
   .input { font-size: 15px; }
   .searchBtn { width: 44px; height: 44px; }
   .tabBtn { font-size: 15px; }
+}
+
+.addFriendBtn {
+  background: #fff;
+  color: #000;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  border: none;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 24px;
+  text-align: center;
+  padding: 0;
+  transition: background 0.3s ease;
+}
+
+.addFriendBtn:hover {
+  background: #fff;
 }

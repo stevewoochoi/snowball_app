@@ -1,0 +1,119 @@
+/* src/components/AddFriendModal.module.css */
+
+.overlay {
+  z-index: 100000 !important;
+  position: fixed; left: 0; top: 0; width: 100vw; height: 150vw;
+  background: rgba(48,54,69,0.18);
+  backdrop-filter: blur(2px);
+  z-index: 10010;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.modal {
+  width: 95vw; max-width: 380px; min-width: 210px;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 8px 38px #1d294644;
+  padding: 18px 18px 20px 18px;
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: stretch;
+}
+
+.closeBtn {
+  position: absolute; right: 12px; top: 8px;
+  background: none; border: none;
+  font-size: 26px; color: #999; cursor: pointer;
+  padding: 0; z-index: 1;
+  transition: color 0.13s;
+}
+.closeBtn:hover { color: #333; }
+
+.title {
+  font-weight: 800;
+  font-size: 19px;
+  margin-bottom: 12px;
+  text-align: left;
+  color: #222;
+  letter-spacing: 1px;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1.4px solid #e0e5f2;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  outline: none;
+  background: #f8fafd;
+  color: #222;
+}
+
+.input::placeholder {
+  color: #888;
+  opacity: 1;
+}
+
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  margin-top: 4px;
+  min-height: 60px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+.resultItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 2px 10px 6px;
+  border-bottom: 1px solid #f1f3fa;
+  font-size: 16px;
+  color: #222;
+}
+.userInfo {
+  flex: 1;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.addBtn {
+  background: #222;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .18s;
+  margin-left: 10px;
+}
+.addBtn:hover {
+  background: #444;
+}
+
+.loading {
+  color: #197ad6;
+  text-align: center;
+  padding: 18px;
+  font-size: 15px;
+}
+.empty {
+  color: #aaa;
+  text-align: center;
+  padding: 18px 0 14px 0;
+  font-size: 14px;
+}
+
+@media (max-width: 460px) {
+  .modal { max-width: 97vw; min-width: 0; }
+}

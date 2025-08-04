@@ -154,6 +154,8 @@
     // mapRef가 아직 초기화되지 않은 경우 재귀적으로 최대 30회까지 재시도합니다.
     // flyTo 메서드를 사용하여 부드럽게 지도 이동 애니메이션을 수행합니다.
     const moveToLocation = (latlng, zoomLevel = 16, retryCount = 0) => {
+        console.log("[moveToLocation] called: latlng=", latlng, "zoomLevel=", zoomLevel, "retryCount=", retryCount);
+
       if (!mapRef.current) {
         if (retryCount > 30) {
           console.error("Map instance not ready after multiple retries, aborting moveToLocation.");
@@ -292,7 +294,7 @@
 
 
           // === 컨트롤 버튼: 모달/오버레이 없을 때만 노출 ===
-          {(!showForm && !selectedSpot && !moveSpot && !showSearch) && (
+          {(!showForm && !selectedSpot && !moveSpot && !showSearch && !showSettings) && (
             <MapControls
               onCurrentLocation={getCurrentLocation}
               onSeoulCityHall={() => moveToLocation([37.5665, 126.9780])}
@@ -302,30 +304,36 @@
 
           {/* Search button (bottom right, above build button) and SearchModal */}
           <img
-            src={searchBtnPressed ? "/button/btn_searchbutton2on.png" : "/button/btn_searchbutton2.png"}
-            alt="검색"
-            style={{
-              position: 'fixed',
-              bottom: "calc(env(safe-area-inset-bottom, 16px) + 16px)",
-              right: 16,
-              width: 70,
-              height: 70,
-              zIndex: 2020,
-              cursor: 'pointer'
-            }}
-            onTouchStart={() => setSearchBtnPressed(true)}
-            onTouchEnd={() => {
-              setSearchBtnPressed(false);
-              setShowSearch(true);
-            }}
-            onMouseDown={() => setSearchBtnPressed(true)}
-            onMouseUp={() => {
-              setSearchBtnPressed(false);
-              setShowSearch(true);
-            }}
-            onMouseLeave={() => setSearchBtnPressed(false)}
-            draggable={false}
-          />
+  src={searchBtnPressed ? "/button/btn_searchbutton2on.png" : "/button/btn_searchbutton2.png"}
+  alt="검색"
+  style={{
+    position: 'fixed',
+    bottom: "calc(env(safe-area-inset-bottom, 16px) + 16px)",
+    right: 16,
+    width: 70,
+    height: 70,
+    zIndex: 2020,
+    cursor: 'pointer'
+  }}
+  onTouchStart={() => {
+    setSearchBtnPressed(true);
+  }}
+  onTouchEnd={() => {
+    setSearchBtnPressed(false);
+    setShowSearch(true);
+  }}
+  onMouseDown={() => {
+    setSearchBtnPressed(true);
+  }}
+  onMouseUp={() => {
+    setSearchBtnPressed(false);
+    setShowSearch(true);
+  }}
+  onMouseLeave={() => {
+    setSearchBtnPressed(false);
+  }}
+  draggable={false}
+/>
           <SearchModal
             open={showSearch}
             onClose={() => {
@@ -333,13 +341,13 @@
               setSearchBtnPressed(false);
             }}
             onSelectSpot={spot => {
-              if (spot?.lat && spot?.lng) {
-                moveToLocation([spot.lat, spot.lng], 18);
-              }
-              setShowSearch(false);
-              setSearchBtnPressed(false);
-            }}
-          />
+              if (spot && spot.id && spot.lat && spot.lng) {
+      moveToLocation([spot.lat, spot.lng], 18);
+    }
+    setShowSearch(false);
+    setSearchBtnPressed(false);
+  }}
+/>
 
           {/* 지도 중앙 미리보기: 손가락+건물+카테고리 (SpotMarker 구조와 동일) */}
           {showForm && (
