@@ -1,0 +1,25 @@
+/* SpotScopeToggle.module.css */
+.scopeToggleWrap {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.scopeBtn {
+  padding: 6px 18px;
+  border-radius: 8px;
+  border: 1.5px solid #197ad6;
+  background: #fff;
+  color: #197ad6;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.92;
+  transition: background .18s, color .18s, border .18s;
+}
+.scopeBtn.selected {
+  background: #197ad6;
+  color: #fff;
+  opacity: 1;
+  cursor: default;
+}

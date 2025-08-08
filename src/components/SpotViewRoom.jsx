@@ -1,11 +1,13 @@
 import SpotGallery from "./SpotGallery";
 import SpotBoard from "./SpotBoard";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import DeleteIcon from "./icons/DeleteIcon";
 import DeleteCircleIcon from "./icons/DeleteCircleIcon";
 import EditIcon from "./icons/EditIcon";
 import MoveSpotIcon from "./icons/MoveSpotIcon";
 import DragFingerIcon from "./icons/DragFingerIcon";
+import SpotScopeToggle from "./SpotScopeToggle"; // <-- import 추가
+import styles from './SpotViewRoom.module.css';
 
 
 
@@ -33,38 +35,40 @@ function SpotViewRoom({ spotId, spot, onClose, user, galleryDetailOpen, setGalle
 
 
   const isOwner = user && spot && String(user.id) === String(spot.ownerId);
-  console.log("[SpotViewRoom] user.id:", user?.id, "| spot.ownerId:", spot?.ownerId, "| isOwner:", isOwner);
+
+  const [currentScope, setCurrentScope] = useState(spot?.scope || "PRIVATE");
+  const [isChangingScope, setIsChangingScope] = useState(false);
+
+  // 공유 범위 변경 핸들러
+  const handleScopeChange = async (newScope) => {
+    if (!isOwner || currentScope === newScope) return;
+    if (!window.confirm("정말 공개 범위를 변경하시겠습니까?")) return;
+    setIsChangingScope(true);
+    try {
+      const token = user?.token || localStorage.getItem("snowball_token");
+      const response = await fetch(`/api/spots/${spotId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ scope: newScope }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update scope");
+      }
+      setCurrentScope(newScope);
+    } catch (err) {
+      alert("공개 범위 변경에 실패했습니다.");
+    } finally {
+      setIsChangingScope(false);
+    }
+  };
+
   return (
-    <div style={{
-      overflowX: "auto",
-      overflowY: "hidden",
-      scrollSnapType: "x mandatory",
-      width: "100vw",
-      height: "100dvh",
-      borderRadius: 30,
-      background: "linear-gradient(140deg,#e6ecf5 80%,#d7e0ea 100%)",
-      boxShadow: "0 8px 32px #0002",
-      border: "7px solid #dde5ef",
-      position: "relative",
-      touchAction: "pan-x",
-      overscrollBehaviorX: "contain",
-      display: "flex"
-    }}>
+    <div className={styles.root}>
       {/* 좌측 벽: GUEST BOOK + 스티커 */}
-      <div style={{
-        width: "100vw",
-        height: "100dvh",
-        flexShrink: 0,
-        display: "inline-block",
-        scrollSnapAlign: "start",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        padding: "48px 14px 18px 28px",
-        borderRight: "2px solid #e8ecf5",
-        background: "linear-gradient(180deg,#f5f6fa 85%,#e1e8f2 100%)"
-      }}>
+      <div className={styles.leftWall}>
         <div style={{ width: "100%", marginBottom: 18 }}>
           <span style={{
             fontWeight: 900, fontSize: 25, letterSpacing: 1.5, color: "#1a9ad6",
@@ -96,20 +100,7 @@ function SpotViewRoom({ spotId, spot, onClose, user, galleryDetailOpen, setGalle
       </div>
 
      {/* 중앙: 주인공(프로필/메뉴) */}
-<div style={{
-  width: "100vw",
-  height: "100dvh",
-  flexShrink: 0,
-  display: "inline-block",
-  scrollSnapAlign: "start",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "flex-start",
-  background: "linear-gradient(180deg,#eef2f6 80%,#dde8fa 100%)",
-  borderLeft: "2px solid #e8ecf5",
-  borderRight: "2px solid #e8ecf5"
-}}>
+<div className={styles.centerPanel}>
   <img src={spot?.profileImg || "/etc/default-avatar.png"} alt=""
     style={{ width: 100, height: 100, borderRadius: "50%", margin: "38px auto 14px", boxShadow: "0 4px 18px #1a9ad622" }} />
   
@@ -139,15 +130,7 @@ function SpotViewRoom({ spotId, spot, onClose, user, galleryDetailOpen, setGalle
     </div>
     {/* 버튼 그룹: 오른쪽 정렬 */}
     {isOwner && (
-      <div style={{
-        position: "absolute",
-        right: 24,
-        top: "50%",
-        transform: "translateY(-50%)",
-        display: "flex",
-        gap: 8,
-        alignItems: "center"
-      }}>
+      <div className={styles.buttonGroup}>
         <button
           onClick={() => {
             console.log("[SpotViewRoom] 스팟 수정 버튼 클릭:", spotId);
@@ -197,6 +180,16 @@ function SpotViewRoom({ spotId, spot, onClose, user, galleryDetailOpen, setGalle
       </div>
     )}
   </div>
+  {/* ========== ⬇️ 공유 범위 토글 추가 (이동/삭제 아래) ========== */}
+  {isOwner && (
+    <div className={styles.scopeToggleRow}>
+      <SpotScopeToggle
+        scope={currentScope}
+        onChange={handleScopeChange}
+        disabled={isChangingScope}
+      />
+    </div>
+  )}
 
   {/* ...나머지 코드 동일... */}
   <div style={{ fontSize: 17, color: "#637081", marginBottom: 32 }}>{spot?.desc || "나만의 공간, 친구를 초대하세요!"}</div>
@@ -208,19 +201,7 @@ function SpotViewRoom({ spotId, spot, onClose, user, galleryDetailOpen, setGalle
 </div>
 
       {/* 우측 벽: 앨범(갤러리) */}
-      <div style={{
-        width: "100vw",
-        height: "100dvh",
-        flexShrink: 0,
-        display: "inline-block",
-        scrollSnapAlign: "start",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        padding: "22px 22px 18px 14px",
-        background: "linear-gradient(180deg,#f7f9fa 68%,#e6eaf4 100%)"
-      }}>
+      <div className={styles.albumWall}>
         <div
           style={{
             width: "96%",

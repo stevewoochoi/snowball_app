@@ -1,0 +1,71 @@
+/* SpotViewRoom.module.css */
+.root {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  width: 100vw;
+  height: 100dvh;
+  border-radius: 30px;
+  background: linear-gradient(140deg,#e6ecf5 80%,#d7e0ea 100%);
+  box-shadow: 0 8px 32px #0002;
+  border: 7px solid #dde5ef;
+  position: relative;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  display: flex;
+}
+
+.leftWall {
+  width: 100vw;
+  height: 100dvh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 48px 14px 18px 28px;
+  border-right: 2px solid #e8ecf5;
+  background: linear-gradient(180deg,#f5f6fa 85%,#e1e8f2 100%);
+}
+
+.centerPanel {
+  width: 100vw;
+  height: 100dvh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: linear-gradient(180deg,#eef2f6 80%,#dde8fa 100%);
+  border-left: 2px solid #e8ecf5;
+  border-right: 2px solid #e8ecf5;
+}
+
+.albumWall {
+  width: 100vw;
+  height: 100dvh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 22px 22px 18px 14px;
+  background: linear-gradient(180deg,#f7f9fa 68%,#e6eaf4 100%);
+}
+
+.buttonGroup {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scopeToggleRow {
+  margin: 0 0 18px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}

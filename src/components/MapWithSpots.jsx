@@ -76,51 +76,75 @@
 
     const [splashShown, setSplashShown] = useState(true);
 
+    // --- map ownership / mode ---
+    const currentUserId = (user?.id ?? Number(localStorage.getItem("snowball_uid"))) || null;
+    const [mapOwnerId, setMapOwnerId] = useState(currentUserId); // whose map is being viewed
+    const [foreignMode, setForeignMode] = useState(false);        // viewing someone else's map?
+    const [mapOwnerNickname, setMapOwnerNickname] = useState(""); // map owner's nickname
+    // Helper: fetch map owner's nickname
+    const fetchOwnerNickname = async (ownerId) => {
+      if (!ownerId) {
+        setMapOwnerNickname("");
+        return;
+      }
+      try {
+        const res = await axios.get(`/api/users/${ownerId}`);
+        const nickname = res?.data?.nickname || "";
+        setMapOwnerNickname(nickname);
+      } catch (e) {
+        setMapOwnerNickname("");
+      }
+    };
+
+
     const handleLogout = () => {
       localStorage.clear();
       window.location.reload();
     };
 
     
-    // Helper: fetch my PRIVATE spots, OFFICIAL spots, (optionally FRIENDS/PUBLIC), and setSpots
-    const fetchAllSpots = async () => {
-      const userId = user?.id || localStorage.getItem("snowball_uid");
-      if (!userId) {
+    // Helper: fetch spots for a given owner (applies visibility rules server-side for foreign maps)
+    const fetchSpotsForOwner = async (ownerId) => {
+      if (!ownerId) {
         setSpots([]);
         return;
       }
       try {
-        // 1. 내 PRIVATE
-        const privateReq = axios.get(`/api/spots?ownerId=${userId}&scope=PRIVATE`);
-        // 2. OFFICIAL
-        const officialReq = axios.get(`/api/spots?scope=OFFICIAL`);
-        // (옵션: FRIENDS, PUBLIC 스팟도 노출하려면 아래 주석 해제)
-        // const friendsReq = axios.get(`/api/spots?scope=FRIENDS`);
-        // const publicReq = axios.get(`/api/spots?scope=PUBLIC`);
-        // await Promise.all 요청
-        const [privateRes, officialRes] = await Promise.all([privateReq, officialReq]);
-        const privateSpots = Array.isArray(privateRes.data) ? privateRes.data : privateRes.data.spots || [];
-        const officialSpots = Array.isArray(officialRes.data) ? officialRes.data : officialRes.data.spots || [];
-        // 옵션(주석 해제 시)
-        // const friendsSpots = Array.isArray(friendsRes.data) ? friendsRes.data : friendsRes.data.spots || [];
-        // const publicSpots = Array.isArray(publicRes.data) ? publicRes.data : publicRes.data.spots || [];
-        // id 중복 없이 병합 (private > official 우선)
-        const spotMap = {};
-        officialSpots.forEach(s => { spotMap[s.id] = s; });
-        privateSpots.forEach(s => { spotMap[s.id] = s; });
-        // 옵션 병합
-        // friendsSpots.forEach(s => { spotMap[s.id] = s; });
-        // publicSpots.forEach(s => { spotMap[s.id] = s; });
-        setSpots(Object.values(spotMap));
+        if (currentUserId && Number(ownerId) === Number(currentUserId)) {
+          // === My map ===
+          const privateReq = axios.get(`/api/spots?ownerId=${ownerId}`);
+          const officialReq = axios.get(`/api/spots?scope=OFFICIAL`);
+          const [privateRes, officialRes] = await Promise.all([privateReq, officialReq]);
+          const privateSpots = Array.isArray(privateRes.data) ? privateRes.data : privateRes.data.spots || [];
+          const officialSpots = Array.isArray(officialRes.data) ? officialRes.data : officialRes.data.spots || [];
+          const spotMap = {};
+          officialSpots.forEach(s => { if (s?.id) spotMap[s.id] = s; });
+          privateSpots.forEach(s => { if (s?.id) spotMap[s.id] = s; });
+          setSpots(Object.values(spotMap));
+          console.log("[MapWithSpots] loaded spots for owner:", ownerId, "foreignMode:", Number(ownerId) !== Number(currentUserId));
+        } else {
+          // === Someone else's map ===
+          const res = await axios.get(`/api/spots?ownerId=${ownerId}&viewerId=${currentUserId || ""}`);
+          const data = Array.isArray(res.data) ? res.data : res.data.spots || [];
+          setSpots(data);
+          console.log("[MapWithSpots] loaded spots for owner:", ownerId, "foreignMode:", Number(ownerId) !== Number(currentUserId));
+        }
       } catch (e) {
+        console.warn("[MapWithSpots] fetchSpotsForOwner error:", e);
         setSpots([]);
       }
     };
 
     useEffect(() => {
-      fetchAllSpots();
-      // eslint-disable-next-line
-    }, [user]);
+      setMapOwnerId(currentUserId || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUserId]);
+
+    useEffect(() => {
+      fetchSpotsForOwner(mapOwnerId);
+      fetchOwnerNickname(mapOwnerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mapOwnerId]);
 
     useEffect(() => {
       let initialHeight = window.innerHeight;
@@ -212,13 +236,24 @@
           isPublic: true
         }
       ).then(() => {
-        fetchAllSpots();
+        fetchSpotsForOwner(currentUserId);
         setShowForm(false);
         setPreviewBuilding(null);
         setPreviewCategory(null);
       });
     };
     
+    const handleBackToMyMap = async () => {
+      if (!currentUserId) return;
+      setForeignMode(false);
+      setMapOwnerId(currentUserId);
+      await fetchSpotsForOwner(currentUserId);
+      // move back near current location if available, otherwise keep center
+      if (myLocation) {
+        moveToLocation(myLocation, 16);
+      }
+    };
+
     return (
       <>
         <style>{`
@@ -340,14 +375,29 @@
               setShowSearch(false);
               setSearchBtnPressed(false);
             }}
-            onSelectSpot={spot => {
-              if (spot && spot.id && spot.lat && spot.lng) {
-      moveToLocation([spot.lat, spot.lng], 18);
-    }
-    setShowSearch(false);
-    setSearchBtnPressed(false);
-  }}
-/>
+            userId={currentUserId}
+            onSelectSpot={async (spot) => {
+              try {
+                if (spot && spot.lat && spot.lng) {
+                  // Switch map owner if needed
+                  if (spot.ownerId && Number(spot.ownerId) !== Number(currentUserId)) {
+                    setForeignMode(true);
+                    setMapOwnerId(spot.ownerId);
+                    await fetchSpotsForOwner(spot.ownerId);
+                  } else {
+                    // back to my map if selecting my own spot
+                    setForeignMode(false);
+                    setMapOwnerId(currentUserId);
+                    await fetchSpotsForOwner(currentUserId);
+                  }
+                  moveToLocation([spot.lat, spot.lng], 18);
+                }
+              } finally {
+                setShowSearch(false);
+                setSearchBtnPressed(false);
+              }
+            }}
+          />
 
           {/* 지도 중앙 미리보기: 손가락+건물+카테고리 (SpotMarker 구조와 동일) */}
           {showForm && (
@@ -414,7 +464,7 @@
           )}
 
           {/* 하단 좌측에 hammer(건축) 버튼 */}
-          {!keyboardOpen && (
+          {!keyboardOpen && !foreignMode && (
             <img
               src={buildBtnPressed ? "/btn_buildbuttonon.png" : "/btn_buildbutton.png"}
               alt="건축"
@@ -488,13 +538,48 @@
                 onClose={() => {
                   setSelectedSpot(null);
                   // 새로고침 after closing SpotView (e.g., after delete)
-                  fetchAllSpots();
+                  fetchSpotsForOwner(mapOwnerId);
                 }}
                 onStartMove={spot => {
                   setSelectedSpot(null); // SpotView 닫기
                   setMoveSpot(spot);     // 이동 모드 진입
                 }}
               />
+            </div>
+          )}
+
+          {/* Foreign map banner */}
+          {foreignMode && (
+            <div style={{
+              position: 'fixed',
+              top: 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 5000,
+              background: 'rgba(0,0,0,0.65)',
+              color: '#fff',
+              padding: '8px 12px',
+              borderRadius: 12,
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center'
+            }}>
+              <span>친구 맵 ({mapOwnerNickname || mapOwnerId})</span>
+              <button
+                onClick={handleBackToMyMap}
+                style={{
+                  marginLeft: 8,
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#ffd54f',
+                  color: '#222',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                내 맵으로
+              </button>
             </div>
           )}
 

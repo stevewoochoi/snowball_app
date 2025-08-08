@@ -17,6 +17,8 @@
   padding: 10px 0 18px 0;
   position: relative;
   display: flex; flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .closeBtn {
@@ -64,22 +66,47 @@
   border-radius: 13px;
   box-shadow: 0 2px 10px #e0eefd33;
   display: flex; flex-direction: column; align-items: center;
-  padding: 12px 7px 9px 7px;
+  padding: 18px 7px 16px 7px;
+  min-height: 10px;
   margin-bottom: 2px;
   cursor: pointer; transition: background 0.13s, box-shadow 0.14s;
 }
 .spotCard:hover { background: #e7f3ff; box-shadow: 0 4px 16px #c7e3ff44; }
+
+.cardImgWrap {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  margin-bottom: 10px;
+}
 
 .cardImg {
   width: 48px; height: 48px; object-fit: contain; margin-bottom: 6px;
   border-radius: 9px; background: #fff;
   box-shadow: 0 1.5px 8px #e6e6e688;
 }
-.cardTitle {
-  font-size: 15px; font-weight: 700; color: #233;
-  text-align: center; margin-bottom: 1px;
-  white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+
+.cardImgBase {
+  width: 62px;
+  height: 62px;
+  border-radius: 13px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.12);
+  object-fit: cover;
+  display: block;
+  margin-bottom: 10px; /* 👈 이거 추가 */
 }
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #233;
+  text-align: center;
+  margin-top: 12px; /* 필요시 조정 */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 .cardSub {
   font-size: 13px; color: #7c8a99; text-align: center;
   white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
@@ -178,12 +205,22 @@
 
 /* 모바일 대응 */
 @media (max-width: 600px) {
-  .modal { max-width: 99vw; }
+  .modal { max-width: 140vw; }
   .spotCard, .friendCard { min-width: 62px; width: 62px; }
   .cardImg { width: 35px; height: 35px; }
   .input { font-size: 15px; }
   .searchBtn { width: 44px; height: 44px; }
   .tabBtn { font-size: 15px; }
+  .cardImgWrap {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 8px;
+  }
+  .cardImgBadge {
+    width: 36px;
+    height: 36px;
+    top: -14px;
+  }
 }
 
 .addFriendBtn {
@@ -203,4 +240,16 @@
 
 .addFriendBtn:hover {
   background: #fff;
+}
+
+.cardImgBadge {
+  position: absolute;
+  left: 50%;
+  top: -24px;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 11px;
+  box-shadow: 0 0 6px rgba(34,34,34,0.13);
+  object-fit: cover;
 }
