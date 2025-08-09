@@ -31,6 +31,27 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
     );
   };
 
+  // === Spot relation badge (my / friends / official / public) ===
+  const getSpotBadgeKey = (s) => {
+    if (!s) return null;
+    const me = Number(effectiveUserId);
+    if (s.scope === 'OFFICIAL') return 'official';
+    if (Number(s.ownerId) === me) return 'my';
+    if (s.scope === 'FRIENDS') return 'friends';
+    if (s.scope === 'PUBLIC') return 'public'; // 모르는 유저의 PUBLIC 스팟 등
+    return null;
+  };
+
+  const getSpotBadgeLabel = (key) => {
+    switch (key) {
+      case 'official': return 'official spot';
+      case 'my': return 'my spot';
+      case 'friends': return 'friends spot';
+      case 'public': return 'public spot';
+      default: return '';
+    }
+  };
+
   // 검색 실행
   useEffect(() => {
     if (!q || q.length < 2) {
@@ -129,7 +150,7 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
                     onClose();
                     setTimeout(() => { clickLock = false; }, 800);
                   }}>
-                  <div className={styles.cardImgWrap}>
+                  <div className={styles.cardImgWrap} style={{ marginBottom: '14px' }}>
                     <img
                       className={styles.cardImgBase}
                       src={getBuildingIcon(s)}
@@ -145,10 +166,26 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
                       />
                     )}
                   </div>
-                  <div className={styles.cardTitle}>{s.name}</div>
-                  <div className={styles.cardSub}>
+                  <div className={styles.cardTitle} style={{ marginTop: '6px' }}>{s.name}</div>
+                  <div className={styles.cardSub} style={{ marginTop: '2px' }}>
                     {s.ownerNickname ? s.ownerNickname : s.ownerId}
                   </div>
+                  {(() => {
+                    const key = getSpotBadgeKey(s);
+                    if (!key) return null;
+                    const label = getSpotBadgeLabel(key);
+                    const cls = `${styles.spotBadge} ` + (
+                      key === 'official' ? styles.spotBadgeOfficial :
+                      key === 'my' ? styles.spotBadgeMy :
+                      key === 'friends' ? styles.spotBadgeFriends :
+                      key === 'public' ? styles.spotBadgePublic : ''
+                    );
+                    return (
+                      <div style={{ marginTop: 4 }}>
+                        <span className={cls}>{label}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))
             )}
@@ -174,7 +211,7 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
                     onClose();
                     setTimeout(() => { clickLock = false; }, 800);
                   }}>
-                  <div className={styles.cardImgWrap}>
+                  <div className={styles.cardImgWrap} style={{ marginBottom: '14px' }}>
                     <img
                       className={styles.cardImgBase}
                       src={getBuildingIcon(s)}
@@ -190,10 +227,26 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
                       />
                     )}
                   </div>
-                  <div className={styles.cardTitle}>{s.name}</div>
-                  <div className={styles.cardSub}>
+                  <div className={styles.cardTitle} style={{ marginTop: '6px' }}>{s.name}</div>
+                  <div className={styles.cardSub} style={{ marginTop: '2px' }}>
                     {s.ownerNickname ? s.ownerNickname : s.ownerId}
                   </div>
+                  {(() => {
+                    const key = getSpotBadgeKey(s);
+                    if (!key) return null;
+                    const label = getSpotBadgeLabel(key);
+                    const cls = `${styles.spotBadge} ` + (
+                      key === 'official' ? styles.spotBadgeOfficial :
+                      key === 'my' ? styles.spotBadgeMy :
+                      key === 'friends' ? styles.spotBadgeFriends :
+                      key === 'public' ? styles.spotBadgePublic : ''
+                    );
+                    return (
+                      <div style={{ marginTop: 4 }}>
+                        <span className={cls}>{label}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))
             )}
@@ -260,6 +313,22 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
                             ? `${s.ownerNickname} (ID:${s.ownerId})`
                             : `ID:${s.ownerId}`}
                         </div>
+                        {(() => {
+                          const key = getSpotBadgeKey(s);
+                          if (!key) return null;
+                          const label = getSpotBadgeLabel(key);
+                          const cls = `${styles.spotBadge} ` + (
+                            key === 'official' ? styles.spotBadgeOfficial :
+                            key === 'my' ? styles.spotBadgeMy :
+                            key === 'friends' ? styles.spotBadgeFriends :
+                            key === 'public' ? styles.spotBadgePublic : ''
+                          );
+                          return (
+                            <div style={{ marginTop: 4 }}>
+                              <span className={cls}>{label}</span>
+                            </div>
+                          );
+                        })()}
                       </li>
                     ))}
                   </ul>

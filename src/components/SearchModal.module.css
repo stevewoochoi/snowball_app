@@ -97,7 +97,7 @@
 }
 
 .cardTitle {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #233;
   text-align: center;
@@ -105,6 +105,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .cardSub {
@@ -221,6 +222,12 @@
     height: 36px;
     top: -14px;
   }
+  .cardTitle {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .addFriendBtn {
@@ -252,4 +259,60 @@
   border-radius: 11px;
   box-shadow: 0 0 6px rgba(34,34,34,0.13);
   object-fit: cover;
+}
+
+
+.spotBadgePublic {
+  display: inline-block;
+  background-color: #dce6f2; /* light blue-gray */
+  color: #2a4b7c; /* dark blue text */
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+/* === Spot relation badges (my / friends / official / public) === */
+.spotBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 내 스팟 */
+.spotBadgeMy {
+  background: #e9f7ec;
+  color: #1a7f37;
+  border: 1px solid #bfe6c8;
+}
+
+/* 친구 스팟 */
+.spotBadgeFriends {
+  background: #fff2e0;
+  color: #9a5300;
+  border: 1px solid #f4c389;
+}
+
+/* 공식 스팟 */
+.spotBadgeOfficial {
+  background: #eef1ff;
+  color: #2b49e4;
+  border: 1px solid #c7d0ff;
+}
+
+/* 공개 스팟(모르는 유저) */
+.spotBadgePublic {
+  background: #e7f2ff;
+  color: #0a63c9;
+  border: 1px solid #bcd8ff;
+}
+
+@media (max-width: 600px) {
+  .spotBadge { font-size: 11px; padding: 3px 7px; }
 }
