@@ -1,9 +1,9 @@
 import styles from './SearchModal.module.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import AddFriendModal from './AddFriendModal';
 
-function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
+function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId, onCenterMap }) {
   const effectiveUserId = userId ?? localStorage.getItem("snowball_uid");
   const [q, setQ] = useState("");
   const [results, setResults] = useState({ spots: [], users: [] });
@@ -17,7 +17,98 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
 
   const [showAddFriend, setShowAddFriend] = useState(false);
 
+  // === OSM(Nominatim) typeahead ===
+  const [osmResults, setOsmResults] = useState([]); // [{display_name, lat, lon, class, type}]
+  const [osmLoading, setOsmLoading] = useState(false);
+  const [osmError, setOsmError] = useState("");
+  const [highlightIdx, setHighlightIdx] = useState(-1);
+  const debounceTimerRef = useRef(null);
+  const lastQueryRef = useRef("");
+
+  const fetchOsm = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setOsmResults([]);
+      setOsmError("");
+      return;
+    }
+    // 동일 질의 중복 호출 방지
+    if (lastQueryRef.current === query) return;
+    lastQueryRef.current = query;
+
+    setOsmLoading(true);
+    setOsmError("");
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&limit=5&accept-language=ko`;
+      const res = await fetch(url, {
+        headers: {
+          // 일부 환경에서 도움이 되지만, 브라우저에서 임의 User-Agent는 무시됨
+          // 정책 준수: 요청량은 디바운스로 제한
+          'Accept': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error(`Nominatim ${res.status}`);
+      const data = await res.json();
+      setOsmResults(Array.isArray(data) ? data : []);
+      setHighlightIdx(data && data.length ? 0 : -1);
+    } catch (err) {
+      console.error('[SearchModal] OSM 검색 오류:', err);
+      setOsmError('주소 검색 중 오류가 발생했습니다.');
+      setOsmResults([]);
+      setHighlightIdx(-1);
+    } finally {
+      setOsmLoading(false);
+    }
+  };
+
+  // 주소 지오코딩 → 지도 중심 이동
+
+  const handleGeocode = async () => {
+    if (!q) return;
+    // 1) OSM 첫 결과 우선 이동
+    if (osmResults && osmResults.length > 0) {
+      pickOsmPlace(osmResults[0]);
+      return;
+    }
+    // 2) 백엔드 프록시 지오코딩 (기존)
+    if (!onCenterMap) return;
+    try {
+      const url = `/api/geocode?query=${encodeURIComponent(q)}`;
+      console.log("[SearchModal] 🗺️ 주소 지오코딩 호출:", url);
+      const { data } = await axios.get(url);
+      if (data && (data.lat ?? data.latitude) != null && (data.lng ?? data.longitude) != null) {
+        const lat = Number(data.lat ?? data.latitude);
+        const lng = Number(data.lng ?? data.longitude);
+        onCenterMap({ lat, lng, address: data.address || data.formatted || q });
+        onClose && onClose();
+        return;
+      }
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
+        const best = data.results[0];
+        const lat = Number(best.lat ?? best.latitude);
+        const lng = Number(best.lng ?? best.longitude);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          onCenterMap({ lat, lng, address: best.formatted || q });
+          onClose && onClose();
+          return;
+        }
+      }
+      alert("해당 주소를 찾지 못했습니다.");
+    } catch (e) {
+      console.error("[SearchModal] 지오코딩 오류:", e?.response?.data || e);
+      alert("주소 검색 중 오류가 발생했습니다.");
+    }
+  };
+
   // Helpers: resolve building & category icons
+  const pickOsmPlace = (item) => {
+    if (!item || !onCenterMap) return;
+    const lat = Number(item.lat ?? item.latitude);
+    const lng = Number(item.lon ?? item.lng ?? item.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    onCenterMap({ lat, lng, address: item.display_name || q });
+    onClose && onClose();
+  };
+
   const getBuildingIcon = (s) => {
     return s.iconUrl || s.buildingIconUrl || (s.building && s.building.iconUrl) || "/etc/img-not-found.png";
   };
@@ -115,6 +206,29 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
       })
       .finally(() => setLoadingPopular(false));
   }, [open, effectiveUserId]);
+
+  // OSM 검색 디바운스 (400ms)
+  useEffect(() => {
+    if (!open) return;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (!q || q.trim().length < 2) {
+      setOsmResults([]);
+      setHighlightIdx(-1);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      fetchOsm(q.trim());
+    }, 400);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    };
+  }, [q, open]);
 
   useEffect(() => {
     if (!open) setQ("");
@@ -269,12 +383,75 @@ function SearchModal({ open, onClose, onSelectSpot, onSelectUser, userId }) {
               className={styles.input}
               value={q}
               onChange={e => setQ(e.target.value)}
-              placeholder="스팟명, 지역명, 아이디"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (highlightIdx >= 0 && osmResults[highlightIdx]) {
+                    pickOsmPlace(osmResults[highlightIdx]);
+                  } else {
+                    handleGeocode();
+                  }
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  if (osmResults.length) setHighlightIdx(i => Math.min(i + 1, osmResults.length - 1));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  if (osmResults.length) setHighlightIdx(i => Math.max(i - 1, 0));
+                }
+              }}
+              placeholder="스팟명, 지역명, 아이디, 주소 입력 가능"
             />
-            <button className={styles.searchBtn}>
+            <button className={styles.searchBtn} onClick={handleGeocode} title="주소로 이동">
               <img src="/button/btn_searchbutton2.png" alt="검색" style={{ width: 30, height: 30 }} />
             </button>
           </div>
+          {q.trim().length >= 2 && (osmLoading || osmResults.length > 0 || osmError) && (
+            <div style={{
+              position: 'relative',
+              zIndex: 5,
+            }}>
+              <ul style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                border: '1px solid #e5e7eb',
+                borderTop: 'none',
+                borderRadius: 8,
+                overflow: 'hidden',
+                maxHeight: 280,
+                overflowY: 'auto',
+                background: '#fff'
+              }}>
+                {osmLoading && (
+                  <li style={{ padding: '10px 12px', fontSize: 13, color: '#6b7280' }}>주소 검색 중...</li>
+                )}
+                {osmError && !osmLoading && (
+                  <li style={{ padding: '10px 12px', fontSize: 13, color: '#b91c1c' }}>{osmError}</li>
+                )}
+                {!osmLoading && !osmError && osmResults.map((item, idx) => (
+                  <li
+                    key={`${item.place_id || item.osm_id || item.display_name}-${idx}`}
+                    onMouseDown={(e) => { e.preventDefault(); }}
+                    onClick={() => pickOsmPlace(item)}
+                    style={{
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      background: idx === highlightIdx ? '#f3f4f6' : '#fff',
+                      borderTop: '1px solid #f3f4f6'
+                    }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{item.display_name?.split(',')[0] || '장소'}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>
+                      {item.class}/{item.type} · {item.display_name}
+                    </div>
+                  </li>
+                ))}
+                {!osmLoading && !osmError && osmResults.length === 0 && (
+                  <li style={{ padding: '10px 12px', fontSize: 13, color: '#6b7280' }}>주소/장소 결과 없음</li>
+                )}
+              </ul>
+            </div>
+          )}
           <div className={styles.tabs}>
             {["all", "spot", "user"].map(t =>
               <button

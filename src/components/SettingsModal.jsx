@@ -18,6 +18,7 @@ function SettingsModal({ onClose, onLogout, basemap, onBasemapChange, user }) {
   const myNickname = user?.nickname || localStorage.getItem('snowball_nickname') || '';
   const myEmail = user?.email || localStorage.getItem('snowball_email') || '';
   const myLevel = user?.level || localStorage.getItem('snowball_level') || '';
+  const nicknameDisplay = myEmail ? `${myNickname} (${myEmail})` : myNickname;
 
   return (
     <div style={{
@@ -31,8 +32,7 @@ function SettingsModal({ onClose, onLogout, basemap, onBasemapChange, user }) {
         {/* 내 정보 */}
         <div style={{marginBottom: 14}}>
           <div style={{fontSize: 16, fontWeight: 700, color: "#197ad6", marginBottom: 4}}>내 계정</div>
-          <div style={{fontSize: 14, color: "#283040"}}>닉네임: <b>{myNickname}</b></div>
-          {myEmail && <div style={{fontSize: 13, color: "#888"}}>이메일: {myEmail}</div>}
+          <div style={{fontSize: 14, color: "#283040"}}>닉네임: <b>{nicknameDisplay}</b></div>
           {myLevel && <div style={{fontSize: 13, color: "#888"}}>Level: {myLevel}</div>}
         </div>
 

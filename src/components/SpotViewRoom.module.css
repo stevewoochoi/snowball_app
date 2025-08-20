@@ -1,71 +1,658 @@
-/* SpotViewRoom.module.css */
-.root {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  width: 100vw;
-  height: 100dvh;
-  border-radius: 30px;
-  background: linear-gradient(140deg,#e6ecf5 80%,#d7e0ea 100%);
-  box-shadow: 0 8px 32px #0002;
-  border: 7px solid #dde5ef;
+.root{
+  display:flex;
+  gap:22px;
+  padding:20px;
+  /* allow content to grow and scroll vertically */
+  min-height:100vh;
+  height:auto;
+  background: radial-gradient(1200px 900px at 60% -10%, #e9f3ff 0%, transparent 60%) var(--sb-bg);
+  position:relative;
+  overflow:auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom:32px;
+}
+
+/* 눈 입자 */
+.snow{
+  pointer-events: none;
+  position:absolute; inset:0;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.7) 50%, transparent 51%),
+    radial-gradient(2px 2px at 80% 10%, rgba(255,255,255,.5) 50%, transparent 51%),
+    radial-gradient(3px 3px at 40% 70%, rgba(255,255,255,.6) 50%, transparent 51%);
+  animation: drift 24s linear infinite;
+  opacity:.6;
+}
+@keyframes drift{ to{ transform: translateY(40px);} }
+
+.panel{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.frostCard{
   position: relative;
-  touch-action: pan-x;
-  overscroll-behavior-x: contain;
-  display: flex;
+  background:
+    radial-gradient(120% 120% at 80% -10%, rgba(255,255,255,.65) 0%, rgba(255,255,255,.38) 35%, rgba(255,255,255,.24) 60%, rgba(255,255,255,.16) 100%),
+    var(--sb-frost);
+  -webkit-backdrop-filter: var(--sb-blur);
+  backdrop-filter: var(--sb-blur);
+  border: 1px solid rgba(255,255,255,.55);
+  border-radius: var(--sb-radius);
+  box-shadow: 0 8px 26px rgba(17,40,92,.10), 0 2px 0 rgba(255,255,255,.65) inset;
+}
+.frostCard::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: var(--sb-radius);
+  pointer-events:none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(14,30,70,.06);
 }
 
-.leftWall {
+.leftWall{ composes: panel; }
+.centerPanel{
+  composes: panel frostCard;
+  align-items:center;
+  padding:18px 20px;
+  justify-content:flex-start;
+  max-width:720px;
+  width:100%;
+  margin: 0 auto;
+  align-self: center;
+}
+.albumWall{ composes: panel; }
+
+.leftWall,
+.albumWall{
+  min-height:0;
+}
+
+.section{
+  composes: frostCard;
+  padding:20px; /* ↑ 살짝 여유 */
+}
+
+.sectionTitle{
+  display:flex; align-items:center; gap:10px;
+  font-weight:900; letter-spacing:-.2px;
+  color: #2b67d9; /* primary */
+  font-size: clamp(16px, 1.8vw, 20px);
+  margin-bottom:12px;
+  text-shadow: 0 1px 0 rgba(255,255,255,.6);
+}
+
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  background:#fff; color: var(--sb-primary-600);
+  font-weight:700; font-size:12px;
+  padding:4px 10px; border-radius:999px;
+  border:1px solid #e6f0fb;
+}
+
+/* 헤더 칩(Welcome, Photo•Video 등) */
+.headerChip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 14px; border-radius:999px; font-weight:800; font-size:12px;
+  color:#2858b8;
+  background: linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(255,255,255,.82) 100%);
+  border:1px solid rgba(229,238,255,.9);
+  box-shadow: 0 10px 24px rgba(59,107,191,.12);
+}
+
+.avatar{
+  width:108px; height:108px; border-radius:50%;
+  box-shadow: var(--sb-shadow-2);
+  border: 4px solid #ffffffcc;
+  object-fit:cover;
+  margin: 26px 0 8px;
+}
+
+.titleRow{
+  display:flex; align-items:center; justify-content:center;
+  gap:12px; flex-wrap:wrap; margin-bottom:8px;
+}
+
+.spotName{
+  font-size:28px; font-weight:900; color:var(--sb-ink);
+  text-align:center; line-height:1.2;
+  max-width:520px;
+  text-wrap:balance;
+}
+
+.buttonGroup{
+  display:flex; gap:10px;
+}
+
+.iconBtn{
+  width:36px; height:36px; border-radius:50%;
+  background:#f5f9ff; border:1.5px solid #cfe6ff;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 6px 16px rgba(54,136,220,.12);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  cursor:pointer;
+}
+.iconBtn:hover{ transform: translateY(-1px); background:#e9f3ff; }
+
+.scopeToggleRow{ margin-top:6px; }
+
+.subtitle{
+  color: var(--sb-ink-sub);
+  font-size:15px;
+  margin: 6px 0 18px;
+  text-align:center;
+}
+
+/* CTA(Leave 등) */
+.ctaRow{
+  width:100%;
+  display:flex; align-items:center; justify-content:center;
+  margin: 10px 0 0;
+}
+.primaryBtn{
+  background:#ffffff;
+  color:#1d3662;
+  border:1px solid #e6eefb;
+  border-radius:14px;
+  font-weight:800;
+  padding:12px 20px;
+  box-shadow: 0 10px 22px rgba(4,36,89,.08);
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.primaryBtn:hover{ transform: translateY(-1px); box-shadow: 0 14px 28px rgba(4,36,89,.12); }
+
+/* GuestBook(왼쪽) */
+.guestCard{ composes: section; }
+.guestBody{
+  max-height: 48vh; overflow:auto; padding-right:6px;
+}
+.guestBody::-webkit-scrollbar{ width:8px; }
+.guestBody::-webkit-scrollbar-thumb{ background:#e8f1ff; border-radius:999px; }
+
+/* Gallery(오른쪽) */
+.galleryCard {
+  overflow: hidden;      /* prevent bleed into next card */
+  position: relative;    /* local stacking context */
+  z-index: 0;
+  padding: 16px;
+}
+.grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 📱 mobile-first: 2 columns */
+  gap:10px;
+  grid-auto-rows: 1fr; /* ✅ 각 셀 높이 균일화 */
+}
+
+.tile{
+  position:relative;
+  background:#fff;
+  border-radius:18px;               /* 살짝 더 둥글게 */
+  box-shadow: var(--sb-shadow-1);
+  overflow:hidden;
+  transition: transform .12s ease, box-shadow .12s ease;
+  min-width: 92px;                  /* 터치 타겟 최소 보장 */
+  border: 1px solid rgba(255,255,255,.6);
+}
+.tile:hover{ transform: translateY(-2px); box-shadow: var(--sb-shadow-2); }
+.tile:active{ transform: scale(0.98); }   /* 터치 피드백 */
+
+.polaroid{
+  padding:8px 8px 12px 8px; background:#fff;
+}
+.caption{
+  font-weight:700; font-size:13px; color:#2d3748;
+  margin-top:8px; line-height:1.3;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.pill{
+  position:absolute; left:10px; top:10px;
+  background:rgba(0,0,0,.52); color:#fff; font-size:11px; font-weight:700;
+  padding:4px 8px; border-radius:999px;
+}
+
+/* Responsive */
+@media (max-width: 1180px){
+  .spotName{ font-size:26px; }
+}
+@media (max-width: 980px){
+  .root{ flex-direction:column; overflow:auto; }
+  .centerPanel{ order:-1; }
+  .guestBody{ max-height: 28vh; }
+  .grid{ grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); }
+}
+@media (max-width: 520px){
+  .spotName{ font-size:22px; }
+  .avatar{ width:92px; height:92px; }
+}
+
+/* 스팟뷰 최상위: 화면 전체를 덮고 자체 스크롤 */
+:global(.sv-root), .sv-root {
+  position: fixed;
+  inset: 0;                 /* full-viewport overlay */
+  z-index: 4000;            /* above the map */
+  /* Keep viewport width stable to avoid layout shifts on scrollbars */
   width: 100vw;
-  height: 100dvh;
-  flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  scrollbar-gutter: stable both-edges;
+
+  /* ⬇ layout: simple vertical stack to avoid overlap issues */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 48px 14px 18px 28px;
-  border-right: 2px solid #e8ecf5;
-  background: linear-gradient(180deg,#f5f6fa 85%,#e1e8f2 100%);
+  align-items: stretch;
+
+  /* scrolling container */
+  min-height: 100svh;
+  height: 100svh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Reduce paint thrash during scroll on iOS/Safari */
+  contain: layout paint;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+  touch-action: pan-y;
+  /* Prevent horizontal rubber-band and limit bounce to this scroller only */
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+
+  padding: 16px 16px calc(32px + env(safe-area-inset-bottom)) 16px;  /* safe padding */
+  background: rgba(0, 12, 24, 0.06);
+  backdrop-filter: blur(4px);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Display", "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Pretendard", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color: var(--sb-ink, #1f2b3a);
+
+  isolation: isolate;
+  container-type: inline-size;
 }
 
-.centerPanel {
-  width: 100vw;
-  height: 100dvh;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  background: linear-gradient(180deg,#eef2f6 80%,#dde8fa 100%);
-  border-left: 2px solid #e8ecf5;
-  border-right: 2px solid #e8ecf5;
+/* 작은 화면에서 한 컬럼으로 쌓기 */
+@media (max-width: 900px) {
+  .sv-root {
+    padding: 12px 12px 24px 12px; /* tighter padding on mobile */
+  }
+  .frostCard,
+  .section,
+  .guestCard,
+  .galleryCard {
+    width: 100%;
+    margin-bottom: 14px;
+  }
 }
 
-.albumWall {
-  width: 100vw;
-  height: 100dvh;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 22px 22px 18px 14px;
-  background: linear-gradient(180deg,#f7f9fa 68%,#e6eaf4 100%);
+/* 아바타 고정 프레임 + 기본 배경(플레이스홀더) */
+.sv-avatarBox{
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #f2f6fb url('/etc/default-avatar.png') center/cover no-repeat; /* ✅ 기본 이미지 */
+  box-shadow: 0 10px 28px rgba(27,67,130,.18), 0 0 0 6px rgba(255,255,255,.55);
+  overflow: hidden;
 }
-
-.buttonGroup {
+/* 실제 이미지: 프레임 안에 절대 배치, 공간 자체는 .sv-avatarBox가 확보 */
+.sv-summary-avatar{
   position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  gap: 8px;
-  align-items: center;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;            /* ✅ 인라인 이미지 줄간격 영향 제거 */
+  object-fit: cover;         /* ✅ 잘림 방지 */
+  border-radius: 50%;
+  background: transparent;
+}
+@media (max-width: 768px){
+  :global(.sv-root), .sv-root{
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(0, 12, 24, 0.08); /* slightly stronger tint when blur is off */
+  }
 }
 
-.scopeToggleRow {
-  margin: 0 0 18px 0;
+/* 패널들이 너무 커서 스크롤이 잘 안 생기면, 내부 스크롤 제한을 풀거나 높이 제한 제거 */
+:global(.sv-panel), .sv-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;         /* ✅ 패널은 가로로 채우고 세로로 늘어나게 */
+  justify-content: flex-start;
+  text-align: left;             /* 좌/우 패널 기본은 좌정렬 */
+  gap: 12px;
   width: 100%;
+  padding: 16px;
+  min-height: auto;
+  height: auto;
+  position: relative;
+  z-index: 0;
+}
+
+:global(.sv-center), .sv-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;          /* ✅ 중앙 카드만 가운데 정렬 */
+  justify-content: flex-start;
+  text-align: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: auto;
+  height: auto;
+  position: relative;
+  z-index: 0;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Center any loose buttons inside the center card */
+.sv-center > button,
+.sv-center > .sv-cta{ align-self: center; }
+
+/* Ensure rows/groups inside center card are centered */
+.sv-center .actionRow,
+.sv-center .buttonGroup,
+.sv-center .scopeToggleRow{
   display: flex;
   justify-content: center;
+  align-items: center;
 }
+
+/* Uniform spacing for action buttons */
+.sv-center .actionBtn{ margin: 0 4px; }
+
+/* Ensure icons inside action buttons have the same size */
+.sv-center .actionBtn svg{ width:24px; height:24px; }
+
+/* Center card max width & centering */
+.sv-center .sv-badge {
+  margin: 0 auto;      /* 뱃지도 중앙으로 */
+}
+.sv-center .buttonGroup,
+.sv-center .scopeToggleRow {
+  display: flex;
+  justify-content: center; /* 버튼 중앙 정렬 */
+  gap: 8px;
+}
+
+/* SpotViewRoom: keep cards self-contained so sections don't overlap */
+.frostCard,
+.section,
+.guestCard,
+.galleryCard {
+  display: block;
+  width: min(100%, 960px);   /* center column width cap */
+  margin: 0 auto 18px;       /* vertical rhythm */
+  overflow: hidden;          /* keep content within card */
+  position: relative;        /* create local stacking context */
+  z-index: 0;
+}
+
+/* ==== SpotViewRoom center panel typography & controls ==== */
+.sv-title{
+  font-weight:900; letter-spacing:-.2px; color:#2b67d9;
+  text-align:center;
+  font-size: clamp(18px, 2.2vw, 22px);
+  text-shadow: 0 1px 0 rgba(255,255,255,.6);
+}
+
+/* Chips (Welcome, Photo•Video) */
+.sv-chip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 14px; border-radius:999px; font-weight:800; font-size:12px;
+  color:#355faa; background: rgba(255,255,255,.85);
+  border:1px solid #e8f0ff; box-shadow: 0 8px 22px rgba(53,95,170,.12);
+}
+
+/* Scope badge */
+.sv-badge{
+  display:inline-flex; align-items:center; padding:6px 12px;
+  border-radius:999px; font-weight:900; font-size:12px; color:#fff;
+  background: linear-gradient(180deg, rgba(25,122,214,1) 0%, rgba(17,98,186,1) 100%);
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow: 0 8px 22px rgba(12,48,120,.18);
+}
+
+/* Avatar hero (center) */
+.sv-hero{
+  width:120px; height:120px; border-radius:50%; object-fit:cover;
+  border:5px solid #fff;
+  box-shadow: 0 10px 28px rgba(27,67,130,.18), 0 0 0 6px rgba(255,255,255,.55);
+}
+
+.sv-name{
+  font-size: clamp(22px, 4.2vw, 34px);
+  font-weight: 900;
+  letter-spacing: -.3px;
+  color: var(--sb-ink, #1f2b3a);
+  margin: 10px 0 4px;
+  text-align: center;
+}
+.sv-desc{
+  color: var(--sb-ink-sub, #5a6a7d);
+  font-size: clamp(13px, 1.6vw, 16px);
+  line-height: 1.6;
+  text-align: center;
+  max-width: 560px;
+  margin-left: auto; margin-right: auto;
+}
+
+/* Primary CTA buttons */
+/* .sv-cta{
+  border:none; border-radius:14px; padding:6px 6px; font-weight:800;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7ff 100%);
+  color:#1b4ed1;
+  box-shadow: 0 10px 22px rgba(4,36,89,.12), 0 1px 0 rgba(255,255,255,.9) inset;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  outline: none;
+} */
+.sv-cta:hover{ 
+   transform: translateY(-1px); 
+   box-shadow: 0 14px 36px rgba(4,36,89,.16); 
+ }
+.sv-cta:focus-visible{ box-shadow: 0 0 0 3px rgba(33,124,214,.25), 0 10px 22px rgba(4,36,89,.12); }
+.sv-cta:active{ transform: translateY(0); filter: saturate(1.05); }
+
+/* 요약 카드 전체: 가운데 정렬 레이아웃 */
+.sv-summary{
+  display: grid;
+  grid-template-columns: 120px 1fr auto; /* avatar | text | actions */
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  width: min(100%, 960px);   /* ✅ same width cap as other cards */
+  margin: 0 auto 18px;        /* ✅ center + vertical rhythm */
+  text-align: center;         /* center text inside */
+}
+
+.sv-summary-left{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 중앙 텍스트 박스는 진짜 중앙 정렬 */
+.sv-summary-main{
+  display: flex;
+  flex-direction: column;
+  align-items: center;        /* ✅ h1, 서브 정보 중앙 */
+  justify-content: center;
+  min-width: 0;
+}
+
+/* 아바타도 고정 크기 */
+.sv-summary-avatar{
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 6px 16px rgba(27,67,130,.16);
+  display: block; /* avoid inline-img baseline jumps */
+}
+
+/* 이름/뱃지 */
+.sv-summary-name{
+  margin: 2px 0 4px;
+  font-weight: 900;
+  font-size: clamp(20px, 5vw, 28px);
+  letter-spacing: -.2px;
+}
+.sv-summary-sub{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;    /* ✅ 중앙 배치 */
+}
+
+/* 액션 버튼 묶음 */
+.sv-summary-actions{
+  display: flex;
+  align-items: center;
+  justify-content: center;    /* ✅ 우측 덩어리도 중앙 */
+  gap: 8px;
+}
+.sv-cta{                      /* 전역 button 스타일 무시 효과 */
+  all: unset;                 /* ✅ index.css button 상속 차단 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(4,36,89,.10);
+  cursor: pointer;
+}
+.sv-cta:active{ transform: scale(0.98); }
+
+:global(.sv-root *), .sv-root * {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* 모바일에서는 세로 스택 + 모두 중앙 */
+@media (max-width: 640px){
+  
+  .sv-root { padding-inline: 10px; }
+
+  .sv-summary{
+    grid-template-columns: 1fr;
+    justify-items: center;    /* ✅ 카드 안의 모든 것 중앙 */
+    gap: 10px;
+  }
+  .sv-summary-actions{
+    width: 100%;
+    justify-content: center;
+  }
+}
+/* === Action buttons (move / delete) – uniform sizing === */
+.actionRow{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  align-items:center;
+  margin-top:10px;
+}
+
+.actionBtn{
+  width:64px;
+  height:64px;
+  border-radius:18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 8px 20px rgba(25,122,214,.12);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.actionBtn:hover{ transform: translateY(-1px); }
+.actionBtn:active{ transform: translateY(0); }
+
+.actionMove{
+  background:#eff6ff;
+  border:1.5px solid #1769e0;
+}
+
+.actionDelete{
+  background:#fff1f2;
+  border:1.5px solid #e8443e;
+}
+
+/* icons inside action buttons */
+.actionBtn svg{
+  width:24px;
+  height:24px;
+}
+
+/* Album tiles – keep 1:1 and let container grow */
+.tile img{
+  width:100%;
+  aspect-ratio: 1 / 1;
+  height:auto;
+  object-fit:cover;
+  display:block;
+  border-radius: 18px;
+}
+
+/* Safety: never clamp panel heights so vertical scroll always works */
+.sv-panel, .sv-center { min-height: auto; height: auto; }
+
+/* === Stack cards with consistent width & spacing === */
+.frostCard,
+.section,
+.guestCard,
+.galleryCard {
+  width: min(100%, 960px);   /* center column width cap */
+  margin: 0 auto 18px;       /* vertical rhythm */
+  overflow: hidden;          /* keep content within card */
+  position: relative;        /* create local stacking context */
+  z-index: 0;
+}
+
+/* ===== Mobile optimizations for gallery ===== */
+@media (max-width: 720px){
+  .sv-root{ padding: 12px 12px 24px 12px; }
+  .galleryCard{ padding:14px; }
+  /* .grid: mobile-first, do not override here */
+  .caption{ font-size:12px; }
+}
+
+@media (max-width: 420px){
+  .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
+  .caption{ font-size:11.5px; }
+}
+
+@media (min-width: 480px){
+  .grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap:12px; }
+}
+@media (min-width: 900px){
+  .grid{ grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:14px; }
+}
+
+@supports not (aspect-ratio: 1 / 1){
+  .tile{ position: relative; }
+  .tile::before{ content:""; display:block; padding-bottom:100%; }
+  .tile > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+}
+
+/* optional spacer utility */
+.sv-spacer { height: 12px; }
+
+/* dividers / subtle separators */
+.divider { height:1px; background: linear-gradient(90deg, transparent, rgba(14,30,70,.08), transparent); margin: 10px 0; }
+
+/* muted text */
+.muted { color: var(--sb-ink-sub, #6a7a8b); }
+
+/* Utility: vertical padding 28px to avoid mixing padding shorthand with inline overrides */
+.py28{ padding-block:28px; }

@@ -250,10 +250,8 @@ function SpotForm({
                   cursor: 'pointer', textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'
                 }}
               >
-                <img src={b.iconUrl} alt={b.name} style={{width:38, height:38, margin:'0'}} />
-                <span style={{
-                  marginTop:2, fontSize:13, fontWeight:buildingId === b.id ? 700 : 400, color:'#444', maxWidth: 56, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'
-                }}>{b.name}</span>
+                <img src={b.iconUrl} alt={b.name} style={{width:48, height:48, margin:'0'}} />
+               
               </div>
             ))}
           </div>
@@ -286,11 +284,8 @@ function SpotForm({
                   cursor:'pointer', transition:'border 0.18s'
                 }}
               >
-                <img src={c.iconUrl} alt={c.name} style={{width:28, height:28, margin:'8px 0 3px 0'}} />
-                <span style={{fontSize:13, fontWeight:categoryId === c.id ? 700 : 400, color:'#333', marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'
-                }}>
-                  {c.name}
-                </span>
+                <img src={c.iconUrl} alt={c.name} style={{width:48, height:48, margin:'2px 0 1px 0'}} />
+               
               </div>
             ))}
           </div>

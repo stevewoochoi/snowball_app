@@ -3,10 +3,20 @@ import styles from './AddFriendModal.module.css';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-export default function AddFriendModal({ onClose }) {
+export default function AddFriendModal({ onClose, viewerId }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // viewerId가 있을 때만 쿼리에 추가
+  const withViewer = (urlBase) => {
+    const uid = viewerId ?? localStorage.getItem("snowball_uid") ?? localStorage.getItem("userId");
+    if (uid != null && uid !== '' && !Number.isNaN(Number(uid))) {
+      const sep = urlBase.includes('?') ? '&' : '?';
+      return `${urlBase}${sep}viewerId=${Number(uid)}`;
+    }
+    return urlBase;
+  };
 
   useEffect(() => {
     if (q.length < 2) {
@@ -14,36 +24,48 @@ export default function AddFriendModal({ onClose }) {
       return;
     }
     setLoading(true);
-    axios.get(`/api/search?q=${encodeURIComponent(q)}&type=user`)
-    .then(res => {
-      const myUserId = localStorage.getItem("userId") || localStorage.getItem("snowball_uid");
-      // 내 계정은 제외하고 보여줌
-      const users = (res.data.users || []).filter(u => String(u.id) !== String(myUserId));
-      setResults(users);
-    })
-    .finally(() => setLoading(false));
-}, [q]);
+    const primaryUrl = withViewer(`/api/search?q=${encodeURIComponent(q)}&type=user`);
+    axios.get(primaryUrl)
+      .then(res => {
+        const myUserId = viewerId ?? localStorage.getItem("snowball_uid") ?? localStorage.getItem("userId");
+        const users = (res.data?.users || res.data || []).filter(u => String(u.id) !== String(myUserId));
+        setResults(users);
+      })
+      .catch(err => {
+        if (err?.response?.status === 400) {
+          const fallbackUrl = withViewer(`/api/search?q=${encodeURIComponent(q)}`);
+          return axios.get(fallbackUrl).then(res2 => {
+            const myUserId = viewerId ?? localStorage.getItem("snowball_uid") ?? localStorage.getItem("userId");
+            const users = (res2.data?.users || res2.data || []).filter(u => String(u.id) !== String(myUserId));
+            setResults(users);
+          }).catch(() => setResults([]));
+        }
+        setResults([]);
+      })
+      .finally(() => setLoading(false));
+  }, [q, viewerId]);
 
   // 친구 요청 버튼 클릭 이벤트 (API 연동)
-  const handleAddFriend = async (userId) => {
-    // 로그 출력: 누가 누구에게 친구 요청하는지
-    const myUserId = localStorage.getItem("userId") || localStorage.getItem("snowball_uid");
-    console.log(`[AddFriendModal] 친구 추가 버튼 클릭: 내 userId=${myUserId}, 대상 userId=${userId}`);
+  const handleAddFriend = async (targetId) => {
+    const myUserId = viewerId ?? localStorage.getItem("snowball_uid") ?? localStorage.getItem("userId");
+    console.log(`[AddFriendModal] 친구 추가 클릭: 내 userId=${myUserId}, 대상 userId=${targetId}`);
+    if (!myUserId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     try {
-      // /api/friends/request에 본인 userId, 대상 userId 모두 전달 (params로)
       await axios.post("/api/friends/request", null, {
         params: {
           userId: myUserId,
-          friendId: userId,
+          friendId: targetId,
+          // 일부 서버는 viewerId를 요구할 수 있음
+          viewerId: myUserId,
         },
       });
-      alert("친구 요청이 전송되었습니다!");
+      alert("친구 요청을 보냈습니다.");
     } catch (e) {
-      if (e.response && e.response.data && e.response.data.message) {
-        alert("친구 요청 실패: " + e.response.data.message);
-      } else {
-        alert("친구 요청 실패: 서버 오류");
-      }
+      const msg = e?.response?.data?.message || "서버 오류";
+      alert("친구 요청 실패: " + msg);
     }
   };
 
@@ -66,14 +88,12 @@ export default function AddFriendModal({ onClose }) {
           )}
           {results.map(user => (
             <div className={styles.resultItem} key={user.id}>
-              <span className={styles.userInfo}>{user.nickname}</span>
+              <span className={styles.userInfo}>
+                {user.nickname} <span style={{ color: '#6b7280', fontSize: 12 }}>({user.email})</span>
+              </span>
               <button
                 className={styles.addBtn}
-                onClick={() => {
-                  const myUserId = localStorage.getItem("userId") || localStorage.getItem("snowball_uid");
-                  console.log(`[AddFriendModal] 친구 추가 버튼 클릭됨: 내 userId=${myUserId}, 대상 userId=${user.id}`);
-                  handleAddFriend(user.id);
-                }}
+                onClick={() => handleAddFriend(user.id)}
                 title="친구 요청"
               >+</button>
             </div>

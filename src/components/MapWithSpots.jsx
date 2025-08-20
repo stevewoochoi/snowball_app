@@ -214,6 +214,13 @@ function MapWithSpots({ user }) {
     }, 1300);
   };
 
+  // SearchModal -> 지도 중심 이동 콜백 어댑터
+  const handleCenterMapFromSearch = ({ lat, lng }) => {
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      moveToLocation([lat, lng], 16);
+    }
+  };
+
   // 현재 위치
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -275,7 +282,7 @@ function MapWithSpots({ user }) {
     <>
       {/* 전역성격 스타일 (리프렛 컨테이너 전용) */}
       <style>{`
-        body, #root { margin:0; padding:0; height:100dvh; overflow:hidden; }
+        body, #root { margin:0; padding:0; height:100dvh; overflow:auto; }
         .leaflet-container {
           top:0 !important; margin:0 !important; padding:0 !important;
           position:fixed !important; left:0 !important;
@@ -374,6 +381,7 @@ function MapWithSpots({ user }) {
               setSearchBtnPressed(false);
             }
           }}
+          onCenterMap={handleCenterMapFromSearch}
         />
 
         {/* 지도 중앙 미리보기 (손가락+건물+카테고리) */}

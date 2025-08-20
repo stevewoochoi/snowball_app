@@ -1,16 +1,28 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+:root{
+  --sb-bg: #eaf3ff;
+  --sb-card: rgba(255,255,255,0.78);
+  --sb-card-strong: rgba(255,255,255,0.92);
+  --sb-stroke: rgba(255,255,255,0.55);
+  --sb-shadow: 0 12px 30px rgba(30,40,80,0.12);
+  --sb-blur: blur(14px);
+  --sb-radius-lg: 20px;
+  --sb-radius-md: 16px;
+  --sb-radius-sm: 12px;
+  --sb-primary: #197ad6;
+  --sb-primary-600:#1b7ce6;
+  --sb-text-900:#243042;
+  --sb-text-600:#627089;
+  --sb-chip: #eaf4ff;
+}
+body{ background: radial-gradient(1200px 600px at 50% -200px,#cfe3ff 0%,#eaf3ff 42%,#f6f9ff 100%) fixed; }
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* index.css */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  /* display:flex; place-items:center;  ❌ 제거 */
+  display: block;                 /* ✅ */
 }
 
 a {
@@ -22,16 +34,10 @@ a:hover {
   color: #535bf2;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+
 
 h1 {
-  font-size: 3.2em;
+  font-size: 1.6em;
   line-height: 1.1;
 }
 
@@ -65,4 +71,16 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+/* 전역 css */
+.spotview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: rgba(0,0,0,0.08);
+  overflow: auto;                  /* ✅ 여기서 스크롤 */
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  align-items: flex-start;         /* 필요 시 */
+  justify-content: center;         /* 필요 시 */
 }
